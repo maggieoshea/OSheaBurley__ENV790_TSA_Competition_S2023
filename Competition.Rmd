@@ -11,6 +11,15 @@ editor_options:
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(readxl)
+library(lubridate)
+library(ggplot2)
+library(forecast)  
+#library(Kendall)
+library(tseries)
+#library(outliers)
+library(tidyverse)
+library(smooth)
+library(kableExtra)
 ```
 
 ## Import the Dataset
