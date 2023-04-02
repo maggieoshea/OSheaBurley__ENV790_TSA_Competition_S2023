@@ -101,6 +101,114 @@ daily_humidity <- humidity%>%
 
 After you process your dataset use the `msts()` function to create a time series object. You need to use `msts()` instead of `ts()` because your daily data will have more than one seasonal component.
 
+```{r}
+# Look at data
+ggplot(daily_demand) +
+  geom_line(aes(x=daily_demand$date, y=daily_demand$daily_average))
+
+# Create ts object
+ts_daily_demand <- msts(daily_demand$daily_average, 
+                           seasonal.periods =c(7,365.25),
+                           start=c(2005,01,01))
+# **NOTE**: Would be nice to add monthly, but I don't see this used in the M10 code or the link referenced there. I'm guessing probably because months can't be expressed precisely in # of days
+
+# Create training and testing data from the full ts object
+ts_demand_train <- subset(ts_daily_demand,
+                          end = length(ts_daily_demand)-365)
+
+#create a subset for testing purpose
+ts_demand_test <- subset(ts_daily_demand,
+                         start = length(ts_daily_demand)-365)
+ts_demand_test <- subset(ts_demand_test,
+                         end = length(ts_demand_test)-1) # **NOTE**: also something odd going on here with the dates where we are getting an observation for 1/1/2011
+
+# Decompose 
+ts_daily_demand %>% mstl() %>%
+  autoplot()
+
+decompose <- data.frame(mstl(ts_daily_demand))
+ts_remainder <- ts(decompose$Remainder)
+
+# Plot the time series over time, ACF and PACF
+par(mfrow=c(1,3), mar=c(6, 4, 4, 2))
+plot(ts_remainder, main="Remainder Time Series", ylab = "Demand")
+Acf(ts_remainder,lag.max=40, main="ACF") 
+Pacf(ts_remainder,lag.max=40, main="PACF")
+  # Looks like an AR process?
+
+```
+
 ## Fit Models to your Data
 
-Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. 
+Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and two sine and cosine terms during the annual season.  
+
+``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+# First Model: 
+ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,2),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot foresting results
+autoplot(ARIMA_Fourier_forecast) + ylab("Demand")
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_Fourier_forecast, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Demand")
+
+# Plot model and observed data during 2010
+plot(ARIMA_Fourier_forecast$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+```
+
+```{r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+#Fit arima model with fourier terms as exogenous regressors
+# seasonal = FALSE is the same as P=D=Q=0
+# play with K by changing it to K=c(2,2), K=c(2,4), K=c(2,6), etc. The higher teh K the longer it will take to converge, because R will try more models.
+
+ARIMA_Four_fit <- auto.arima(ts_act_power_daily_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_act_power_daily_train, 
+                                          K=c(2,12))
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Four_for <- forecast(ARIMA_Four_fit,
+                           xreg=fourier(ts_act_power_daily_train,
+                                        K=c(2,12),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot foresting results
+autoplot(ARIMA_Four_for) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_act_power_daily) +
+  autolayer(ARIMA_Four_for, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Active Power")
+
+```
