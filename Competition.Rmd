@@ -110,7 +110,21 @@ ggplot(daily_demand) +
 ts_daily_demand <- msts(daily_demand$daily_average, 
                            seasonal.periods =c(7,365.25),
                            start=c(2005,01,01))
+
 # **NOTE**: Would be nice to add monthly, but I don't see this used in the M10 code or the link referenced there. I'm guessing probably because months can't be expressed precisely in # of days
+## I made monthly data! Though because there are so few years, when you reduce to monthly data there are so few observations which makes me think it is better to model with daily data? Open to your thoughts though!
+monthly_demand <- daily_demand%>%
+  mutate("month" = month(ymd(date)),
+         "year" = year(ymd(date)))%>%
+  select(month, year, daily_average)%>%
+  group_by(month, year)%>%
+  summarize(monthly_average = mean(daily_average))%>%
+  mutate("month-year" = paste0(month, year, sep="/"))
+
+ggplot(monthly_demand) +
+  geom_line(aes(x=`month-year`, y=monthly_average), group=1)
+#There seems to be missing data which is a bit weird, could be because of the way I summarized it?
+
 
 # Create training and testing data from the full ts object
 ts_demand_train <- subset(ts_daily_demand,
@@ -120,7 +134,8 @@ ts_demand_train <- subset(ts_daily_demand,
 ts_demand_test <- subset(ts_daily_demand,
                          start = length(ts_daily_demand)-365)
 ts_demand_test <- subset(ts_demand_test,
-                         end = length(ts_demand_test)-1) # **NOTE**: also something odd going on here with the dates where we are getting an observation for 1/1/2011
+                         end = length(ts_demand_test)-1) 
+# **NOTE**: also something odd going on here with the dates where we are getting an observation for 1/1/2011
 
 # Decompose 
 ts_daily_demand %>% mstl() %>%
@@ -187,6 +202,14 @@ legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
 # seasonal = FALSE is the same as P=D=Q=0
 # play with K by changing it to K=c(2,2), K=c(2,4), K=c(2,6), etc. The higher teh K the longer it will take to converge, because R will try more models.
 
+
+ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
 ARIMA_Four_fit <- auto.arima(ts_act_power_daily_train, 
                              seasonal=FALSE, 
                              lambda=0,
@@ -212,3 +235,55 @@ autoplot(ts_act_power_daily) +
   ylab("Active Power")
 
 ```
+
+
+
+### TBATS Model 
+
+BATS is Exponential smoothing state space model with **B**ox-Cox transformation, **A**RMA errors, **T**rend and **S**easonal components. TBATS is a trigonometric seasonal variation of BATS. A Box Cox transformation is a transformation of non-normal dependent variables into a normal shape. 
+
+## This looks SUPER weird... 
+not sure what's going on! 
+```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
+# TBATS can take time to fit
+TBATS_fit <- tbats(ts_demand_train)
+
+TBATS_for <- forecast(TBATS_fit, h=365)
+
+#Plot foresting results
+autoplot(TBATS_for) +
+  ylab("Active Power") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(TBATS_for, series="TBATS",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+```
+
+### STL + ETS
+```{r}
+#Fit and forecast STL + ETS model to data
+ETS_fit <-  stlf(ts_demand_train,h=365)
+
+#Plot foresting results
+autoplot(ETS_fit) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+
+## Compiling Accuracy Calculation
+# Accuracy not working because 'start' cannot be after 'end' --> not sure what's going on! 
+```{r}
+#Model 1: ARIMA with Fourier 
+ARIMA_f_scores <- accuracy(ARIMA_Fourier_forecast$mean, ts_demand_train) 
+
+#Model 2: STL+ETS
+ETS_scores <- accuracy(ETS_fit$mean, ts_demand_train)
+```
+
