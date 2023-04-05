@@ -6,6 +6,12 @@ editor_options:
   chunk_output_type: console
 ---
 
+## Notes from Maggie
+  - I was thinking it may be good to have a spot at the top of the RMD to say what we've been up to, questions, etc. so here it is! Happy to use another format too, but just thought this is an easy place to find notes to each other when we open the file 
+  - The final assignment requires that we write about our models a little bit (I think? The competition instructions seem to suggest there is some writing component)
+      - Because of this, I was thinking maybe after we run a model we should include a few sentences of our interpretation of it, that way when it comes time to submit we won't have to go back through and remember what we thought about it. 
+
+
 ## Load Libraries
 
 ```{r message = FALSE, warning=FALSE}
@@ -153,6 +159,7 @@ Pacf(ts_remainder,lag.max=40, main="PACF")
 
 ```
 
+
 ## Fit Models to your Data
 
 Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and two sine and cosine terms during the annual season.  
@@ -195,7 +202,127 @@ lines(ts_demand_test,
 legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
        col=c("black",4), lwd=3, cex=0.8)
 
+accuracy(ARIMA_Fourier_fit)
 ```
+
+### Fourier Fit Training Data Interpretation
+THE RMSE is 518.61 and the MAPE is 11.16. 
+
+## Modeling Full Data
+After using the training dataset, re-running with the full dataset to forecast into 2011:
+```{r}
+# First Model: 
+ARIMA_Fourier_full <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_demand, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_FULLforecast <- forecast(ARIMA_Fourier_full,
+                           xreg=fourier(ts_daily_demand,
+                                        K=c(2,2),
+                                        h=365),
+                           h=60
+                           #Set H to 60 because I think we are only forecasting till February
+                           ) 
+autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
+#For some reason it's still forecasting into 2012 and not just for 2 months
+
+accuracy(ARIMA_Fourier_full)
+
+```
+
+## Model with Full data: 
+RMSE 516 and MAPE 10.9. 
+
+
+## Export Model Results
+```{r}
+ARIMA_fourier_export <- as.data.frame(ARIMA_Fourier_FULLforecast)
+write.csv(ARIMA_Fourier_forecast, file="./Submissions/ARIMA_fourier_v1.csv")
+
+```
+
+
+
+### TBATS Model 
+
+BATS is Exponential smoothing state space model with **B**ox-Cox transformation, **A**RMA errors, **T**rend and **S**easonal components. TBATS is a trigonometric seasonal variation of BATS. A Box Cox transformation is a transformation of non-normal dependent variables into a normal shape. 
+
+## This looks SUPER weird... 
+not sure what's going on! 
+```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
+# TBATS can take time to fit
+TBATS_fit <- tbats(ts_demand_train)
+
+TBATS_for <- forecast(TBATS_fit, h=365)
+
+#Plot foresting results
+autoplot(TBATS_for) +
+  ylab("Active Power") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(TBATS_for, series="TBATS",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(TBATS_for)
+```
+
+### TBATS Interpretation
+Unsurprisingly, this model did not perform well. the MAPE was 40.04 -- much much higher than the other models. 
+
+### STL + ETS
+```{r}
+#Fit and forecast STL + ETS model to data
+ETS_fit <-  stlf(ts_demand_train,h=365)
+
+#Plot foresting results
+autoplot(ETS_fit) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+accuracy(ETS_fit)
+```
+
+### STL + ETS Interpretation 
+The RMSE is 442.2992 and the MAPE is 9.67, both lower than the original ARIMA_Fourier.  
+
+## Full Data Modeling
+```{r}
+#Fit and forecast STL + ETS model to data
+ETS_fit_full <-  stlf(ts_daily_demand,h=365)
+
+#Plot foresting results
+autoplot(ETS_fit) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(ETS_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+accuracy(ETS_fit_full)
+```
+## Full Dataset Accuracy
+MAPE: 9.59, RMSE 450.54
+
+## Export Model Results
+```{r}
+ETS_STL_export <- as.data.frame(ETS_fit_full)%>%
+  filter()
+write.csv(ETS_STL_export, file="./Submissions/ARIMA_fourier_v1.csv")
+
+```
+
+
+## Saving Code
+I saw this pasted from the in-class exercise -- I didn't want to delete it all together so I just put it down here to streamline
 
 ```{r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 #Fit arima model with fourier terms as exogenous regressors
@@ -234,56 +361,5 @@ autoplot(ts_act_power_daily) +
   autolayer(ARIMA_Four_for, series="ARIMA_FOURIER",PI=FALSE) +
   ylab("Active Power")
 
-```
-
-
-
-### TBATS Model 
-
-BATS is Exponential smoothing state space model with **B**ox-Cox transformation, **A**RMA errors, **T**rend and **S**easonal components. TBATS is a trigonometric seasonal variation of BATS. A Box Cox transformation is a transformation of non-normal dependent variables into a normal shape. 
-
-## This looks SUPER weird... 
-not sure what's going on! 
-```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
-# TBATS can take time to fit
-TBATS_fit <- tbats(ts_demand_train)
-
-TBATS_for <- forecast(TBATS_fit, h=365)
-
-#Plot foresting results
-autoplot(TBATS_for) +
-  ylab("Active Power") 
-
-#Plot model + observed data
-autoplot(ts_demand_train) +
-  autolayer(TBATS_for, series="TBATS",PI=FALSE)+
-  ylab("Electricity Demand") 
-
-```
-
-### STL + ETS
-```{r}
-#Fit and forecast STL + ETS model to data
-ETS_fit <-  stlf(ts_demand_train,h=365)
-
-#Plot foresting results
-autoplot(ETS_fit) + ylab("Active Power")
-
-#Plot model + observed data
-autoplot(ts_demand_train) +
-  autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
-  ylab("Active Power")
-
-```
-
-
-## Compiling Accuracy Calculation
-# Accuracy not working because 'start' cannot be after 'end' --> not sure what's going on! 
-```{r}
-#Model 1: ARIMA with Fourier 
-ARIMA_f_scores <- accuracy(ARIMA_Fourier_forecast$mean, ts_demand_train) 
-
-#Model 2: STL+ETS
-ETS_scores <- accuracy(ETS_fit$mean, ts_demand_train)
 ```
 
