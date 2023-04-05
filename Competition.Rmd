@@ -9,7 +9,7 @@ editor_options:
 ## Notes from Maggie
   - I was thinking it may be good to have a spot at the top of the RMD to say what we've been up to, questions, etc. so here it is! Happy to use another format too, but just thought this is an easy place to find notes to each other when we open the file 
   - The final assignment requires that we write about our models a little bit (I think? The competition instructions seem to suggest there is some writing component)
-      - Because of this, I was thinking maybe after we run a model we should include a few sentences of our interpretation of it, that way when it comes time to submit we won't have to go back through and remember what we thought about it. 
+      - Because of this, I was thinking maybe after we run a model we could include a few sentences of our interpretation of it, that way when it comes time to submit we won't have to go back through and remember what we thought about it. I started to do that just by reporting the RMSE/MAPE and if they are smaller/larger than others which feels like enough, but open to suggestions if you think we should put more. 
 
 
 ## Load Libraries
@@ -224,19 +224,20 @@ ARIMA_Fourier_full <- auto.arima(ts_daily_demand,
 ARIMA_Fourier_FULLforecast <- forecast(ARIMA_Fourier_full,
                            xreg=fourier(ts_daily_demand,
                                         K=c(2,2),
-                                        h=365),
+                                        h=60),
                            h=60
-                           #Set H to 60 because I think we are only forecasting till February
+                           #Set H to 60 because I think we are only forecasting till February. I changed both h values to 60 because when only changing 1 (just the second one not in the xreg parantheses) it still had 365 days of forecasting. 
                            ) 
 autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
-#For some reason it's still forecasting into 2012 and not just for 2 months
 
 accuracy(ARIMA_Fourier_full)
+
+
 
 ```
 
 ## Model with Full data: 
-RMSE 516 and MAPE 10.9. 
+RMSE 516 and MAPE 10.9. The Forecast plot seems to show a huge range in demand. 
 
 
 ## Export Model Results
