@@ -314,9 +314,8 @@ MAPE: 9.59, RMSE 450.54
 
 ## Export Model Results
 ```{r}
-ETS_STL_export <- as.data.frame(ETS_fit_full)%>%
-  filter()
-write.csv(ETS_STL_export, file="./Submissions/ARIMA_fourier_v1.csv")
+ETS_STL_export <- as.data.frame(ETS_fit_full)
+write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv")
 
 ```
 
