@@ -55,12 +55,18 @@ Note that I provided hourly data. You should take the **average** of the 24 hour
 
 
 ```{r}
-daily_demand <- hourly_demand%>%
-  group_by(date, meter_id)%>%
-  summarize(
-    daily_average = (h1+h2+h3+h4+h5+h6+h7+h8+h9+h10+h11+h12+
-                       h13+h14+h15+h16+h17+h18+h19+h20+h21+h22+h23+h24)/24
-  )
+# daily_demand <- hourly_demand%>%
+#   group_by(date, meter_id)%>%
+#   summarize(
+#     daily_average = (h1+h2+h3+h4+h5+h6+h7+h8+h9+h10+h11+h12+
+#                        h13+h14+h15+h16+h17+h18+h19+h20+h21+h22+h23+h24)/24
+#   )
+
+daily_demand <- hourly_demand %>%
+  pivot_longer(cols=h1:h24, names_to = "hour", values_to = "demand") %>%
+  filter(!is.na(demand)) %>% # only a handful of missing hourly obs. Let's try removing them
+  group_by(date, meter_id) %>%
+  summarise(daily_average = mean(demand))
 
 daily_temp <- hourly_temp%>%
   group_by(date)%>%
@@ -100,8 +106,9 @@ daily_humidity <- hourly_humidity%>%
   summarize(avg_humidity = mean(humidity))%>%
   pivot_wider(values_from = "avg_humidity", names_from = "rh")
 
+# Extract forecast dates from the submission template
 forecast_dates <- submission_template$date
-rm(submission_template)
+rm(cor_mat, daily_all, daily_forcor, daily_forcor_mat, submission_template)
   
 ```
 
@@ -119,7 +126,7 @@ ggplot(daily_demand) +
 
 # Create ts object
 ts_daily_demand <- msts(daily_demand$daily_average, 
-                           seasonal.periods =c(7,365.25),
+                           seasonal.periods =c(7,30.5, 365.25),
                            start=c(2005,01,01))
 
 # **NOTE**: Would be nice to add monthly, but I don't see this used in the M10 code or the link referenced there. I'm guessing probably because months can't be expressed precisely in # of days
@@ -135,6 +142,7 @@ monthly_demand <- daily_demand%>%
 ggplot(monthly_demand) +
   geom_line(aes(x=`month-year`, y=monthly_average), group=1)
 #There seems to be missing data which is a bit weird, could be because of the way I summarized it?
+# updated the code in Chunk 3 to just remove the missing hourly demand obs? There are only like 5, and since its a daily average I think its ok to just drop?
 
 
 # Create training and testing data from the full ts object
@@ -154,6 +162,26 @@ ts_daily_demand %>% mstl() %>%
 
 decompose <- data.frame(mstl(ts_daily_demand))
 ts_remainder <- ts(decompose$Remainder)
+
+## Look for correlations between humidity, temp, and demand/de-seasoned demand
+deseasoned <- data.frame(date = daily_demand$date, deseas_demand = ts_remainder)
+daily_all <- daily_demand %>%
+  left_join(deseasoned, by="date") %>%
+  left_join(daily_humidity, by="date") %>%
+  left_join(daily_temp, by="date") %>%
+  ungroup()
+
+daily_forcor <- daily_all %>%
+  select(-c(date, meter_id))
+
+daily_forcor_mat <- data.matrix(daily_forcor)
+
+cor_mat <- cor(daily_forcor, use="complete")
+cor_results <- data.frame(corr = cor_mat[,1:2])
+cor_results <- cor_results %>%
+  mutate(corr.daily_average = abs(corr.daily_average),
+         corr.deseas_demand = abs(corr.deseas_demand))
+  # none of the humidity or temp vars have a very strong correlation with demand or deseasoned demand...
 
 # Plot the time series over time, ACF and PACF
 par(mfrow=c(1,3), mar=c(6, 4, 4, 2))
