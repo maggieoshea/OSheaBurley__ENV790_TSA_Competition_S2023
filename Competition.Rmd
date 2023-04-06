@@ -17,6 +17,7 @@ editor_options:
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(readxl)
+library(writexl)
 library(lubridate)
 library(ggplot2)
 library(forecast)  
@@ -40,6 +41,7 @@ Your goal is to forecast **daily** demand for the month of January 2011 based on
 hourly_demand <- read_excel("./Data/load.xlsx")
 hourly_temp<- read_excel("./Data/temperature.xlsx")
 hourly_humidity<- read_excel("./Data/relative_humidity.xlsx")
+submission_template <- read_excel("./Data/submission_template.xlsx")
 ```
 
 
@@ -92,11 +94,14 @@ daily_temp <- hourly_temp%>%
             avg_t_ws27 = mean(t_ws27),
             avg_t_ws28 = mean(t_ws28))
 
-daily_humidity <- humidity%>%
+daily_humidity <- hourly_humidity%>%
   pivot_longer(cols = -c(hr, date), names_to = "rh", values_to = "humidity")%>%
   group_by(date, rh)%>%
   summarize(avg_humidity = mean(humidity))%>%
   pivot_wider(values_from = "avg_humidity", names_from = "rh")
+
+forecast_dates <- submission_template$date
+rm(submission_template)
   
 ```
 
@@ -170,19 +175,19 @@ ARIMA_Fourier_fit <- auto.arima(ts_demand_train,
                              seasonal=FALSE, 
                              lambda=0,
                              xreg=fourier(ts_demand_train, 
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                                          K=c(2,6)) # 2 weekly cycles, 2 annual cycles
                              )
 
 #Forecast with ARIMA fit
 #also need to specify h for fourier terms
 ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit,
                            xreg=fourier(ts_demand_train,
-                                        K=c(2,2),
+                                        K=c(2,6),
                                         h=365),
                            h=365
                            ) 
 
-#Plot foresting results
+#Plot forecasting results
 autoplot(ARIMA_Fourier_forecast) + ylab("Demand")
 
 #Plot model + all observed data
@@ -206,7 +211,7 @@ accuracy(ARIMA_Fourier_fit)
 ```
 
 ### Fourier Fit Training Data Interpretation
-THE RMSE is 518.61 and the MAPE is 11.16. 
+THE RMSE is 518.28 and the MAPE is 11.15. 
 
 ## Modeling Full Data
 After using the training dataset, re-running with the full dataset to forecast into 2011:
@@ -216,23 +221,21 @@ ARIMA_Fourier_full <- auto.arima(ts_daily_demand,
                              seasonal=FALSE, 
                              lambda=0,
                              xreg=fourier(ts_daily_demand, 
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                                          K=c(2,6)) # 2 weekly cycles, 2 annual cycles
                              )
-
+n_forecast = 31+28
 #Forecast with ARIMA fit
 #also need to specify h for fourier terms
 ARIMA_Fourier_FULLforecast <- forecast(ARIMA_Fourier_full,
                            xreg=fourier(ts_daily_demand,
-                                        K=c(2,2),
-                                        h=60),
-                           h=60
+                                        K=c(2,6),
+                                        h=n_forecast),
+                           h=n_forecast
                            #Set H to 60 because I think we are only forecasting till February. I changed both h values to 60 because when only changing 1 (just the second one not in the xreg parantheses) it still had 365 days of forecasting. 
                            ) 
 autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
 
 accuracy(ARIMA_Fourier_full)
-
-
 
 ```
 
@@ -242,12 +245,10 @@ RMSE 516 and MAPE 10.9. The Forecast plot seems to show a huge range in demand.
 
 ## Export Model Results
 ```{r}
-ARIMA_fourier_export <- as.data.frame(ARIMA_Fourier_FULLforecast)
-write.csv(ARIMA_Fourier_forecast, file="./Submissions/ARIMA_fourier_v1.csv")
+ARIMA_fourier_export <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLforecast$mean)
+write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names = FALSE)
 
 ```
-
-
 
 ### TBATS Model 
 
@@ -298,7 +299,7 @@ The RMSE is 442.2992 and the MAPE is 9.67, both lower than the original ARIMA_Fo
 ## Full Data Modeling
 ```{r}
 #Fit and forecast STL + ETS model to data
-ETS_fit_full <-  stlf(ts_daily_demand,h=365)
+ETS_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
 
 #Plot foresting results
 autoplot(ETS_fit) + ylab("Active Power")
@@ -315,8 +316,8 @@ MAPE: 9.59, RMSE 450.54
 
 ## Export Model Results
 ```{r}
-ETS_STL_export <- as.data.frame(ETS_fit_full)
-write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv")
+ETS_STL_export <- data.frame(date=forecast_dates, load=ETS_fit_full$mean)
+write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv", row.names=FALSE)
 
 ```
 
