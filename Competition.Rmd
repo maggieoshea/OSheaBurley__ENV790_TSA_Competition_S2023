@@ -18,6 +18,7 @@ editor_options:
 ```{r message = FALSE, warning=FALSE}
 library(tidyverse)
 library(readxl)
+library(writexl)
 library(lubridate)
 library(ggplot2)
 library(forecast)  
@@ -41,6 +42,7 @@ Your goal is to forecast **daily** demand for the month of January 2011 based on
 hourly_demand <- read_excel("./Data/load.xlsx")
 hourly_temp<- read_excel("./Data/temperature.xlsx")
 hourly_humidity<- read_excel("./Data/relative_humidity.xlsx")
+submission_template <- read_excel("./Data/submission_template.xlsx")
 ```
 
 
@@ -54,12 +56,18 @@ Note that I provided hourly data. You should take the **average** of the 24 hour
 
 
 ```{r}
-daily_demand <- hourly_demand%>%
-  group_by(date, meter_id)%>%
-  summarize(
-    daily_average = (h1+h2+h3+h4+h5+h6+h7+h8+h9+h10+h11+h12+
-                       h13+h14+h15+h16+h17+h18+h19+h20+h21+h22+h23+h24)/24
-  )
+# daily_demand <- hourly_demand%>%
+#   group_by(date, meter_id)%>%
+#   summarize(
+#     daily_average = (h1+h2+h3+h4+h5+h6+h7+h8+h9+h10+h11+h12+
+#                        h13+h14+h15+h16+h17+h18+h19+h20+h21+h22+h23+h24)/24
+#   )
+
+daily_demand <- hourly_demand %>%
+  pivot_longer(cols=h1:h24, names_to = "hour", values_to = "demand") %>%
+  filter(!is.na(demand)) %>% # only a handful of missing hourly obs. Let's try removing them
+  group_by(date, meter_id) %>%
+  summarise(daily_average = mean(demand))
 
 daily_temp <- hourly_temp%>%
   group_by(date)%>%
@@ -93,11 +101,15 @@ daily_temp <- hourly_temp%>%
             avg_t_ws27 = mean(t_ws27),
             avg_t_ws28 = mean(t_ws28))
 
-daily_humidity <- humidity%>%
+daily_humidity <- hourly_humidity%>%
   pivot_longer(cols = -c(hr, date), names_to = "rh", values_to = "humidity")%>%
   group_by(date, rh)%>%
   summarize(avg_humidity = mean(humidity))%>%
   pivot_wider(values_from = "avg_humidity", names_from = "rh")
+
+# Extract forecast dates from the submission template
+forecast_dates <- submission_template$date
+rm(cor_mat, daily_all, daily_forcor, daily_forcor_mat, submission_template)
   
 ```
 
@@ -115,7 +127,7 @@ ggplot(daily_demand) +
 
 # Create ts object
 ts_daily_demand <- msts(daily_demand$daily_average, 
-                           seasonal.periods =c(7,365.25),
+                           seasonal.periods =c(7, 365.25),
                            start=c(2005,01,01))
 
 ts_daily_humidity <- msts(daily_humidity$rh_ws1, 
@@ -138,6 +150,7 @@ monthly_demand <- daily_demand%>%
 ggplot(monthly_demand) +
   geom_line(aes(x=`month-year`, y=monthly_average), group=1)
 #There seems to be missing data which is a bit weird, could be because of the way I summarized it?
+# updated the code in Chunk 3 to just remove the missing hourly demand obs? There are only like 5, and since its a daily average I think its ok to just drop?
 
 
 # Create training and testing data from the full ts object
@@ -161,6 +174,26 @@ ts_daily_demand %>% mstl() %>%
 decompose <- data.frame(mstl(ts_daily_demand))
 ts_remainder <- ts(decompose$Remainder)
 
+## Look for correlations between humidity, temp, and demand/de-seasoned demand
+deseasoned <- data.frame(date = daily_demand$date, deseas_demand = ts_remainder)
+daily_all <- daily_demand %>%
+  left_join(deseasoned, by="date") %>%
+  left_join(daily_humidity, by="date") %>%
+  left_join(daily_temp, by="date") %>%
+  ungroup()
+
+daily_forcor <- daily_all %>%
+  select(-c(date, meter_id))
+
+daily_forcor_mat <- data.matrix(daily_forcor)
+
+cor_mat <- cor(daily_forcor, use="complete")
+cor_results <- data.frame(corr = cor_mat[,1:2])
+cor_results <- cor_results %>%
+  mutate(corr.daily_average = abs(corr.daily_average),
+         corr.deseas_demand = abs(corr.deseas_demand))
+  # none of the humidity or temp vars have a very strong correlation with demand or deseasoned demand...
+
 # Plot the time series over time, ACF and PACF
 par(mfrow=c(1,3), mar=c(6, 4, 4, 2))
 plot(ts_remainder, main="Remainder Time Series", ylab = "Demand")
@@ -173,27 +206,28 @@ Pacf(ts_remainder,lag.max=40, main="PACF")
 
 ## Fit Models to your Data
 
-Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and two sine and cosine terms during the annual season.  
+Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and six sine and cosine terms during the annual season, after testing different combinations of K.  
 
+### ARIMA with Fourier Terms Model 
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 # First Model: 
 ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
                              seasonal=FALSE, 
                              lambda=0,
                              xreg=fourier(ts_demand_train, 
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                                          K=c(2,6)) # 2 weekly cycles, 6 annual cycles
                              )
 
 #Forecast with ARIMA fit
 #also need to specify h for fourier terms
 ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit,
                            xreg=fourier(ts_demand_train,
-                                        K=c(2,2),
+                                        K=c(2,6),
                                         h=365),
                            h=365
                            ) 
 
-#Plot foresting results
+#Plot forecasting results
 autoplot(ARIMA_Fourier_forecast) + ylab("Demand")
 
 #Plot model + all observed data
@@ -213,13 +247,15 @@ lines(ts_demand_test,
 legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
        col=c("black",4), lwd=3, cex=0.8)
 
-accuracy(ARIMA_Fourier_fit)
+ARIMA_four_scores <- accuracy(ARIMA_Fourier_forecast$mean, ts_demand_test)
+checkresiduals(ARIMA_Fourier_forecast)
+
 ```
 
 ### Fourier Fit Training Data Interpretation
-THE RMSE is 518.61 and the MAPE is 11.16. 
+THE RMSE is 951.8972 and the MAPE is 23.426. 
 
-## Modeling Full Data
+## Modeling Full Data - ARIMA with Fourier
 After using the training dataset, re-running with the full dataset to forecast into 2011:
 ```{r}
 # First Model: 
@@ -227,37 +263,82 @@ ARIMA_Fourier_full <- auto.arima(ts_daily_demand,
                              seasonal=FALSE, 
                              lambda=0,
                              xreg=fourier(ts_daily_demand, 
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                                          K=c(2,6)) # 2 weekly cycles, 2 annual cycles
                              )
+n_forecast = 31+28 # January and February - 59 days
 
 #Forecast with ARIMA fit
 #also need to specify h for fourier terms
 ARIMA_Fourier_FULLforecast <- forecast(ARIMA_Fourier_full,
                            xreg=fourier(ts_daily_demand,
-                                        K=c(2,2),
-                                        h=60),
-                           h=60
+                                        K=c(2,6),
+                                        h=n_forecast),
+                           h=n_forecast
                            #Set H to 60 because I think we are only forecasting till February. I changed both h values to 60 because when only changing 1 (just the second one not in the xreg parantheses) it still had 365 days of forecasting. 
                            ) 
 autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
 
-accuracy(ARIMA_Fourier_full)
-
-
-
 ```
-
-## Model with Full data: 
-RMSE 516 and MAPE 10.9. The Forecast plot seems to show a huge range in demand. 
-
 
 ## Export Model Results
 ```{r}
-ARIMA_fourier_export <- as.data.frame(ARIMA_Fourier_FULLforecast)
-write.csv(ARIMA_Fourier_forecast, file="./Submissions/ARIMA_fourier_v1.csv")
-
+ARIMA_fourier_export <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLforecast$mean)
+write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names = FALSE)
 ```
 
+### ARIMA with Independent Variables
+Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
+``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+# Set up regressors: 
+regressors <- data.frame(date = daily_demand$date, temp = daily_temp$avg_t_ws23, humidity = daily_humidity$rh_ws20)
+
+regressors <- regressors %>%
+  mutate(dow = wday(date),
+         doy = yday(date)) %>%
+  select(-c(date, temp, humidity))
+
+X <- data.matrix(regressors)
+X_train <- X[1:1826,]
+X_test <- X[1827:2191,]
+
+# First Model: 
+ARIMA_reg_fit <- auto.arima(ts_demand_train, 
+                             seasonal=TRUE, 
+                             lambda=0,
+                             xreg=X_train) # 2 weekly cycles, 6 annual cycles
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_reg_forecast <- forecast(ARIMA_reg_fit,
+                           xreg=X_test,
+                           h=365
+                           ) 
+
+#Plot forecasting results
+autoplot(ARIMA_reg_forecast) + ylab("Demand")
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_reg_forecast, series="ARIMA_Regressors",PI=FALSE) +
+  ylab("Demand")
+
+# Plot model and observed data during 2010
+plot(ARIMA_reg_forecast$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+  # It's just terrible!
+
+ARIMA_reg_scores <- accuracy(ARIMA_reg_forecast$mean, ts_demand_test)
+checkresiduals(ARIMA_reg_forecast)
+
+```
 
 
 ### TBATS Model 
@@ -269,7 +350,6 @@ not sure what's going on!
 ```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
 # TBATS can take time to fit
 TBATS_fit <- tbats(ts_demand_train)
-
 TBATS_for <- forecast(TBATS_fit, h=365)
 
 #Plot foresting results
@@ -281,11 +361,43 @@ autoplot(ts_demand_train) +
   autolayer(TBATS_for, series="TBATS",PI=FALSE)+
   ylab("Electricity Demand") 
 
-accuracy(TBATS_for)
+# Plot model and observed data during 2010
+plot(TBATS_for$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+TBATS_scores <- accuracy(TBATS_for$mean, ts_demand_test)
+checkresiduals(TBATS_for)
+
 ```
 
 ### TBATS Interpretation
-Unsurprisingly, this model did not perform well. the MAPE was 40.04 -- much much higher than the other models. 
+THE RMSE is 912.102 and the MAPE is 18.35. This model performed better than the ARIMA with fourier.
+
+## Modeling Full Data - TBATS
+After using the training dataset, re-running with the full dataset to forecast into 2011:
+```{r}
+# First Model: 
+TBATS_fit_full <- tbats(ts_daily_demand)
+TBATS_for_full <- forecast(TBATS_fit_full, h=n_forecast)
+
+autoplot(TBATS_for_full) + ylab("Demand")
+
+```
+
+## Export Model Results - TBATs
+```{r}
+TBATS_export <- data.frame(date=forecast_dates, load=TBATS_for_full$mean)
+write.csv(TBATS_export, "./Submissions/TBATS_v1.csv", row.names = FALSE)
+
+```
 
 ### STL + ETS
 ```{r}
@@ -300,16 +412,17 @@ autoplot(ts_demand_train) +
   autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
   ylab("Active Power")
 
-accuracy(ETS_fit)
+ETS_scores <- accuracy(ETS_fit$mean, ts_demand_test)
+checkresiduals(ETS_fit)
 ```
 
 ### STL + ETS Interpretation 
-The RMSE is 442.2992 and the MAPE is 9.67, both lower than the original ARIMA_Fourier.  
+The RMSE is 1231.962 and the MAPE is 33.30224, both higher than the original ARIMA_Fourier.  
 
-## Full Data Modeling
+## Full Data Modeling - STL+ETS
 ```{r}
 #Fit and forecast STL + ETS model to data
-ETS_fit_full <-  stlf(ts_daily_demand,h=365)
+ETS_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
 
 #Plot foresting results
 autoplot(ETS_fit) + ylab("Active Power")
@@ -319,18 +432,86 @@ autoplot(ts_daily_demand) +
   autolayer(ETS_fit_full, series="STL + ETS",PI=FALSE) +
   ylab("Active Power")
 
-accuracy(ETS_fit_full)
 ```
-## Full Dataset Accuracy
-MAPE: 9.59, RMSE 450.54
 
-## Export Model Results
+## Export Model Results - ETS
 ```{r}
-ETS_STL_export <- as.data.frame(ETS_fit_full)
-write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv")
+ETS_STL_export <- data.frame(date=forecast_dates, load=ETS_fit_full$mean)
+write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv", row.names=FALSE)
 
 ```
 
+### Neural Network Model
+```{r}
+# Fit Model on Training Data
+NN_fit <- nnetar(ts_demand_train,
+                 p=1,
+                 P=0,
+                 xreg=fourier(ts_demand_train, K=c(3.5,2)))
+
+# Forecast on Testing Data
+NN_for <- forecast(NN_fit, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(3.5,2),h=365))
+
+#Plot foresting results
+autoplot(NN_for) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for$mean, ts_demand_test)
+NN_scores <- accuracy(NN_for$mean, ts_demand_test)
+checkresiduals(NN_for)
+```
+
+## NNInterpretation
+THE RMSE is 1000.898 and the MAPE is 16.67504. The MAPE appears to be the lowest among models, but RMSE is in the middle of the range.
+
+## Full Data Modeling - Neural Network
+```{r}
+#Fit and forecast STL + ETS model to data
+NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+
+#Plot foresting results
+autoplot(NN_fit_full) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+## Export Model Results - NN
+```{r}
+NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
+write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+
+```
+
+### Compare All Models 
+```{r}
+scores <- as.data.frame(rbind(ARIMA_four_scores, ARIMA_reg_scores, TBATS_scores, ETS_scores, NN_scores))
+row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
+
+```
 
 ## ARIMA with exogenous variables 
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
