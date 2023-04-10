@@ -12,6 +12,7 @@ editor_options:
       - Because of this, I was thinking maybe after we run a model we could include a few sentences of our interpretation of it, that way when it comes time to submit we won't have to go back through and remember what we thought about it. I started to do that just by reporting the RMSE/MAPE and if they are smaller/larger than others which feels like enough, but open to suggestions if you think we should put more. 
 
 
+
 ## Load Libraries
 
 ```{r message = FALSE, warning=FALSE}
@@ -117,6 +118,13 @@ ts_daily_demand <- msts(daily_demand$daily_average,
                            seasonal.periods =c(7,365.25),
                            start=c(2005,01,01))
 
+ts_daily_humidity <- msts(daily_humidity$rh_ws1, 
+                           seasonal.periods =c(7,365.25),
+                           start=c(2005,01,01))
+ts_daily_temp <- msts(daily_temp$avg_t_ws1, 
+                           seasonal.periods =c(7,365.25),
+                           start=c(2005,01,01))
+
 # **NOTE**: Would be nice to add monthly, but I don't see this used in the M10 code or the link referenced there. I'm guessing probably because months can't be expressed precisely in # of days
 ## I made monthly data! Though because there are so few years, when you reduce to monthly data there are so few observations which makes me think it is better to model with daily data? Open to your thoughts though!
 monthly_demand <- daily_demand%>%
@@ -135,7 +143,10 @@ ggplot(monthly_demand) +
 # Create training and testing data from the full ts object
 ts_demand_train <- subset(ts_daily_demand,
                           end = length(ts_daily_demand)-365)
-
+ts_humid_train <- subset(ts_daily_humidity,
+                          end = length(ts_daily_demand)-365)
+ts_temp_train <- subset(ts_daily_temp,
+                          end = length(ts_daily_demand)-365)
 #create a subset for testing purpose
 ts_demand_test <- subset(ts_daily_demand,
                          start = length(ts_daily_demand)-365)
@@ -319,6 +330,50 @@ ETS_STL_export <- as.data.frame(ETS_fit_full)
 write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv")
 
 ```
+
+
+## ARIMA with exogenous variables 
+``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+# First Model: 
+ARIMA_Fourier_fit2 <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train,
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit2,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,2),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot foresting results
+autoplot(ARIMA_Fourier_forecast) + ylab("Demand")
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_Fourier_forecast, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Demand")
+
+# Plot model and observed data during 2010
+plot(ARIMA_Fourier_forecast$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(ARIMA_Fourier_fit)
+```
+
 
 
 ## Saving Code
