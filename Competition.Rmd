@@ -6,11 +6,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Notes from Maggie
-  - I was thinking it may be good to have a spot at the top of the RMD to say what we've been up to, questions, etc. so here it is! Happy to use another format too, but just thought this is an easy place to find notes to each other when we open the file 
-  - The final assignment requires that we write about our models a little bit (I think? The competition instructions seem to suggest there is some writing component)
-      - Because of this, I was thinking maybe after we run a model we could include a few sentences of our interpretation of it, that way when it comes time to submit we won't have to go back through and remember what we thought about it. I started to do that just by reporting the RMSE/MAPE and if they are smaller/larger than others which feels like enough, but open to suggestions if you think we should put more. 
-
 
 
 ## Load Libraries
@@ -204,11 +199,11 @@ Pacf(ts_remainder,lag.max=40, main="PACF")
 ```
 
 
-## Fit Models to your Data
+# Fit Models to your Data
 
 Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and six sine and cosine terms during the annual season, after testing different combinations of K.  
 
-### ARIMA with Fourier Terms Model 
+## ARIMA with Fourier Terms Model 
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 # First Model: 
 ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
@@ -252,10 +247,10 @@ checkresiduals(ARIMA_Fourier_forecast)
 
 ```
 
-### Fourier Fit Training Data Interpretation
+### ARIMA with Fourier - Training Data Interpretation
 THE RMSE is 951.8972 and the MAPE is 23.426. 
 
-## Modeling Full Data - ARIMA with Fourier
+### Modeling Full Data - ARIMA with Fourier
 After using the training dataset, re-running with the full dataset to forecast into 2011:
 ```{r}
 # First Model: 
@@ -280,13 +275,13 @@ autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
 
 ```
 
-## Export Model Results
+### Export Model Results
 ```{r}
 ARIMA_fourier_export <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLforecast$mean)
 write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names = FALSE)
 ```
 
-### ARIMA with Independent Variables
+## ARIMA with Independent Variables
 Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 # Set up regressors: 
@@ -341,12 +336,8 @@ checkresiduals(ARIMA_reg_forecast)
 ```
 
 
-### TBATS Model 
+## TBATS Model 
 
-BATS is Exponential smoothing state space model with **B**ox-Cox transformation, **A**RMA errors, **T**rend and **S**easonal components. TBATS is a trigonometric seasonal variation of BATS. A Box Cox transformation is a transformation of non-normal dependent variables into a normal shape. 
-
-## This looks SUPER weird... 
-not sure what's going on! 
 ```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
 # TBATS can take time to fit
 TBATS_fit <- tbats(ts_demand_train)
@@ -381,7 +372,7 @@ checkresiduals(TBATS_for)
 ### TBATS Interpretation
 THE RMSE is 912.102 and the MAPE is 18.35. This model performed better than the ARIMA with fourier.
 
-## Modeling Full Data - TBATS
+### Modeling Full Data - TBATS
 After using the training dataset, re-running with the full dataset to forecast into 2011:
 ```{r}
 # First Model: 
@@ -392,14 +383,14 @@ autoplot(TBATS_for_full) + ylab("Demand")
 
 ```
 
-## Export Model Results - TBATs
+### Export Model Results - TBATs
 ```{r}
 TBATS_export <- data.frame(date=forecast_dates, load=TBATS_for_full$mean)
 write.csv(TBATS_export, "./Submissions/TBATS_v1.csv", row.names = FALSE)
 
 ```
 
-### STL + ETS
+## STL + ETS
 ```{r}
 #Fit and forecast STL + ETS model to data
 ETS_fit <-  stlf(ts_demand_train,h=365)
@@ -419,7 +410,7 @@ checkresiduals(ETS_fit)
 ### STL + ETS Interpretation 
 The RMSE is 1231.962 and the MAPE is 33.30224, both higher than the original ARIMA_Fourier.  
 
-## Full Data Modeling - STL+ETS
+### Full Data Modeling - STL+ETS
 ```{r}
 #Fit and forecast STL + ETS model to data
 ETS_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
@@ -434,14 +425,14 @@ autoplot(ts_daily_demand) +
 
 ```
 
-## Export Model Results - ETS
+### Export Model Results - ETS
 ```{r}
 ETS_STL_export <- data.frame(date=forecast_dates, load=ETS_fit_full$mean)
 write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv", row.names=FALSE)
 
 ```
 
-### Neural Network Model 1 
+## Neural Network Model 1 
 ```{r}
 # Fit Model on Training Data
 NN_fit <- nnetar(ts_demand_train,
@@ -481,56 +472,64 @@ NN_scores <- accuracy(NN_for$mean, ts_demand_test)
 checkresiduals(NN_for)
 ```
 
-## NNInterpretation
+### NN Interpretation
 THE RMSE is 1000.898 and the MAPE is 16.67504. The MAPE appears to be the lowest among models, but RMSE is in the middle of the range.
 
-## Full Data Modeling - Neural Network
+### Neural Network Output Submission 1.5
+I called this 1.5 because our initial neural network output v1 was accidentally the fitted data of an STL-ETS model. So I just tweaked it to make sure it was exporting the right model! The original code is at the bottom where I am saving code I don't want to delete but just want to streamline the RMD. 
 ```{r}
-#Fit and forecast STL + ETS model to data
-NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+#Fit and forecast full neural network
+NN_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=0,
+                 xreg=fourier(ts_daily_demand, K=c(3.5,2)))
 
-#Plot foresting results
-autoplot(NN_fit_full) + ylab("Active Power")
-
-#Plot model + observed data
+NN_full_for <- forecast(NN_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_daily_demand, 
+                                          K=c(3.5,2),h=59))
+#Plot foresting 
 autoplot(ts_daily_demand) +
-  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
-  ylab("Active Power")
+  autolayer(NN_full_for, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for)
 
 ```
 
-## Export Model Results - NN
+### Export Model Results - NN
 ```{r}
-NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
-write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+NN_export15 <- data.frame(date=forecast_dates, load=NN_full_for$mean)
+write.csv(NN_export15, file="./Submissions/NN_v1p5.csv", row.names=FALSE)
 
 ```
+
 
 ## Neural Network Model 2
 ```{r}
 # Fit Model on Training Data
-NN_fit <- nnetar(ts_demand_train,
-                 p=1,
+NN_fit2 <- nnetar(ts_demand_train,
+                 p=2,
                  P=0,
-                 xreg=fourier(ts_demand_train, K=c(3.5,2)))
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
 
 # Forecast on Testing Data
-NN_for <- forecast(NN_fit, 
+NN_for2 <- forecast(NN_fit2, 
                    h=365,
                    xreg=fourier(ts_demand_train, 
-                                          K=c(3.5,2),h=365))
+                                          K=c(2,6),h=365))
 
 #Plot foresting results
-autoplot(NN_for) +
+autoplot(NN_for2) +
   ylab("Electricity Demand") 
 
 #Plot model + observed data
 autoplot(ts_demand_train) +
-  autolayer(NN_for, series="Neural Network",PI=FALSE)+
+  autolayer(NN_for2, series="Neural Network",PI=FALSE)+
   ylab("Electricity Demand") 
 
 # Plot model and observed data during 2010
-plot(NN_for$mean,
+plot(NN_for2$mean,
      xlab = "Date",
      ylab = "Demand",
      ylim = c(1000, 10000))
@@ -541,44 +540,50 @@ lines(ts_demand_test,
 legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
        col=c("black",4), lwd=3, cex=0.8)
 
-accuracy(NN_for$mean, ts_demand_test)
-NN_scores <- accuracy(NN_for$mean, ts_demand_test)
-checkresiduals(NN_for)
+accuracy(NN_for2$mean, ts_demand_test)
+NN2_scores <- accuracy(NN_for2$mean, ts_demand_test)
+checkresiduals(NN_for2)
 ```
 
-## NN2 Interpretation
-THE RMSE is 1000.898 and the MAPE is 16.67504. The MAPE appears to be the lowest among models, but RMSE is in the middle of the range.
+### NN2 Interpretation
+THE RMSE is 1092.151 and the MAPE is 17.423. The MAPE is higher than the other neural network model, but still relatively low. 
 
-## Full Data Modeling - Neural Network 2
+### Full Data Modeling - Neural Network 2
 ```{r}
-#Fit and forecast STL + ETS model to data
-NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+#Fit and forecast full neural network
+NN2_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=0,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
 
-#Plot foresting results
-autoplot(NN_fit_full) + ylab("Active Power")
-
-#Plot model + observed data
+NN_full_for2 <- forecast(NN2_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
 autoplot(ts_daily_demand) +
-  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
-  ylab("Active Power")
+  autolayer(NN_full_for2, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for2)
 
 ```
 
-## Export Model Results - NN2
+### Export Model Results - NN2
 ```{r}
-NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
-write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+NN2_export <- data.frame(date=forecast_dates, load=NN_full_for2$mean)
+write.csv(NN2_export, file="./Submissions/NN_v2.csv", row.names=FALSE)
 
 ```
 
-### Compare All Models 
+## Compare All Models 
 ```{r}
 scores <- as.data.frame(rbind(ARIMA_four_scores, ARIMA_reg_scores, TBATS_scores, ETS_scores, NN_scores))
 row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
 
 ```
 
-## ARIMA with exogenous variables 
+### ARIMA with exogenous variables 
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 # First Model: 
 ARIMA_Fourier_fit2 <- auto.arima(ts_demand_train, 
@@ -623,7 +628,39 @@ accuracy(ARIMA_Fourier_fit)
 
 
 ## Saving Code
+
+Pasted Code from Original Neural Network export: 
+
+## Full Data Modeling - Neural Network
+```{r}
+#Fit and forecast STL + ETS model to data
+NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+#This STLF code runs the STL+ETS model, so I don't know if we've yet exported the full model results from the first Neural Network! I just did so, below -- I could be wrong, so I didn't delete this! 
+
+#Plot foresting results
+autoplot(NN_fit_full) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+## Export Model Results - NN --> 
+```{r}
+NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
+write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+
+```
+
+
+
+
+
+
 I saw this pasted from the in-class exercise -- I didn't want to delete it all together so I just put it down here to streamline
+
 
 ```{r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 #Fit arima model with fourier terms as exogenous regressors
