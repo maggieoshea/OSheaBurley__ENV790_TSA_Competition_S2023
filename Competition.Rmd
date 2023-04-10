@@ -441,7 +441,7 @@ write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv", row.names=FALSE)
 
 ```
 
-### Neural Network Model
+### Neural Network Model 1 
 ```{r}
 # Fit Model on Training Data
 NN_fit <- nnetar(ts_demand_train,
@@ -500,6 +500,71 @@ autoplot(ts_daily_demand) +
 ```
 
 ## Export Model Results - NN
+```{r}
+NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
+write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 2
+```{r}
+# Fit Model on Training Data
+NN_fit <- nnetar(ts_demand_train,
+                 p=1,
+                 P=0,
+                 xreg=fourier(ts_demand_train, K=c(3.5,2)))
+
+# Forecast on Testing Data
+NN_for <- forecast(NN_fit, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(3.5,2),h=365))
+
+#Plot foresting results
+autoplot(NN_for) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for$mean, ts_demand_test)
+NN_scores <- accuracy(NN_for$mean, ts_demand_test)
+checkresiduals(NN_for)
+```
+
+## NN2 Interpretation
+THE RMSE is 1000.898 and the MAPE is 16.67504. The MAPE appears to be the lowest among models, but RMSE is in the middle of the range.
+
+## Full Data Modeling - Neural Network 2
+```{r}
+#Fit and forecast STL + ETS model to data
+NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+
+#Plot foresting results
+autoplot(NN_fit_full) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+## Export Model Results - NN2
 ```{r}
 NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
 write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
