@@ -147,7 +147,6 @@ ggplot(monthly_demand) +
 #There seems to be missing data which is a bit weird, could be because of the way I summarized it?
 # updated the code in Chunk 3 to just remove the missing hourly demand obs? There are only like 5, and since its a daily average I think its ok to just drop?
 
-
 # Create training and testing data from the full ts object
 ts_demand_train <- subset(ts_daily_demand,
                           end = length(ts_daily_demand)-365)
@@ -290,7 +289,9 @@ regressors <- data.frame(date = daily_demand$date, temp = daily_temp$avg_t_ws23,
 regressors <- regressors %>%
   mutate(dow = wday(date),
          doy = yday(date)) %>%
-  select(-c(date, temp, humidity))
+  select(-c(date, dow, doy, humidity)) 
+# , temp, humidity
+
 
 X <- data.matrix(regressors)
 X_train <- X[1:1826,]
@@ -298,9 +299,10 @@ X_test <- X[1827:2191,]
 
 # First Model: 
 ARIMA_reg_fit <- auto.arima(ts_demand_train, 
-                             seasonal=TRUE, 
+                             seasonal=FALSE, 
                              lambda=0,
-                             xreg=X_train) # 2 weekly cycles, 6 annual cycles
+                             xreg=c(fourier(),X_train) # 2 weekly cycles, 6 annual cycles
+                            # Luana - can combine the fourier coefficients and exogenous variables as a list here!
 
 #Forecast with ARIMA fit
 #also need to specify h for fourier terms
