@@ -282,27 +282,68 @@ write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names 
 
 ## ARIMA with Exogenous Variables
 
-# First examine exogenous variables more closely: 
-```{r}
-summary(is.na(daily_temp$avg_t_ws23))
-#No NAs 
-
-summary(is.na(daily_humidity$rh_ws20))
-#No NAs
-```
-
-
-
+### Both Temperature and Humidity 
 ```{r}
 tempandhumidity <- auto.arima(ts_demand_train,
                   seasonal = FALSE, 
                   lambda = 0,
-         xreg = cbind(fourier(ts_daily_demand, 
+         xreg = cbind(fourier(ts_demand_train, 
                                           K=c(2,6)),
-               temperature=daily_temp$avg_t_ws23,
-               humidity=daily_humidity$rh_ws20))
+               humidity=ts_humid_train,
+               temperature=ts_temp_train))
+
+#Forecast 
+temphumidity_forecast <- forecast(tempandhumidity,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)
+                                         # ,h=365 --> I included this originally but it won't run with it here, so tagged it out. 
+                                         ),
+                                humidity=ts_humid_train,
+                                temperature=ts_temp_train),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(temphumidity_forecast, series="ARIMA with Exogenous Variables",PI=FALSE) +
+  ylab("Demand")
+
+accuracy(temphumidity_forecast)
+# Shows a really high RMSE
 ```
 
+#### Discussion of ARIMA with 2 Exogenous Variables (Temp and Humidity)
+This model did not appear to fit the data well, both on the plots and through a quantitative evaluation with the RMSE and MAPE. Because of this, a full forecast was not performed. 
+
+### Just Temperature
+```{r}
+temp_only<- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+               temperature=ts_temp_train))
+summary(temp_only)
+
+#Forecast 
+temponly_forecast <- forecast(temp_only,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)
+                                         # ,h=365 #--> I included this originally but it won't run with it here, so tagged it out. 
+                                         ),
+                                temperature=ts_temp_train),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(temponly_forecast, series="ARIMA with Exogenous Variables",PI=FALSE) +
+  ylab("Demand")
+
+accuracy(temponly_forecast)
+# An even higher RMSE than the temperature and humidity model. 
+```
+
+#### ARIMA with Temperature Exogenous Discussion
+The MAPE and RMSE suggest that including temperature does not improve the model given that these values were higher than 
 
 ## ARIMA with Independent Variables
 Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
