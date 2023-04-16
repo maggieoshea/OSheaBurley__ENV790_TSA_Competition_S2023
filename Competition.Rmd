@@ -822,7 +822,7 @@ NN3_scores <- accuracy(NN_for3$mean, ts_demand_test)
 ```
 
 ### NN3 Interpretation
-THE RMSE is 1151.663 and the MAPE is 18.813. The MAPE is higher than the other neural network model, but still relatively low. 
+THE RMSE is 1151.663 and the MAPE is 18.813. 
 
 ### Full Data Modeling - Neural Network 3
 ```{r}
@@ -889,11 +889,11 @@ legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
        col=c("black",4), lwd=3, cex=0.8)
 
 accuracy(NN_for4$mean, ts_demand_test)
-NN3_scores <- accuracy(NN_for3$mean, ts_demand_test)
+NN4_scores <- accuracy(NN_for4$mean, ts_demand_test)
 ```
 
-### NN3 Interpretation
-THE RMSE is 1151.663 and the MAPE is 18.813. The MAPE is higher than the other neural network model, but still relatively low. 
+### NN5 Interpretation
+THE RMSE is 2183.415 and the MAPE is 54.47. 
 
 ### Full Data Modeling - Neural Network 4
 ```{r}
@@ -923,6 +923,145 @@ write.csv(NN4_export, file="./Submissions/NN_v4.csv", row.names=FALSE)
 
 ```
 
+## Neural Network Model 5
+```{r}
+# Fit Model on Training Data
+NN_fit5 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=1,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for5 <- forecast(NN_fit5, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot foresting results
+autoplot(NN_for5) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for5, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for5$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for5$mean, ts_demand_test)
+NN5_scores <- accuracy(NN_for5$mean, ts_demand_test)
+```
+
+### NN5 Interpretation
+THE RMSE is 1110.899 and the MAPE is 18.2.  
+
+### Full Data Modeling - Neural Network 4
+```{r}
+#Fit and forecast full neural network
+NN5_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=1,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for5 <- forecast(NN5_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for5, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for5)
+
+```
+
+### Export Model Results - NN5
+```{r}
+NN5_export <- data.frame(date=forecast_dates, load=NN_full_for5$mean)
+write.csv(NN5_export, file="./Submissions/NN_v5.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 6
+```{r}
+# Fit Model on Training Data
+NN_fit6 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=2,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for6 <- forecast(NN_fit6, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot foresting results
+autoplot(NN_for6) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for6, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for6$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for6$mean, ts_demand_test)
+NN6_scores <- accuracy(NN_for6$mean, ts_demand_test)
+```
+
+### NN5 Interpretation
+THE RMSE is 1082.454 and the MAPE is 18.3.  
+
+### Full Data Modeling - Neural Network 4
+```{r}
+#Fit and forecast full neural network
+NN6_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=2,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for6 <- forecast(NN6_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for6, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for6)
+
+```
+
+### Export Model Results - NN5
+```{r}
+NN6_export <- data.frame(date=forecast_dates, load=NN_full_for6$mean)
+write.csv(NN6_export, file="./Submissions/NN_v6.csv", row.names=FALSE)
+
+```
 
 ## Compare All Models 
 ```{r}
