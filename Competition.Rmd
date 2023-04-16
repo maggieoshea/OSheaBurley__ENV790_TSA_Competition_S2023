@@ -362,13 +362,13 @@ autoplot(temphumidity_forecast_FULL) + ylab("Demand")
 accuracy(temphumidity_forecast_FULL)
 ```
 
-### Export Model Results with Exogenous Variables
+#### Export Model Results with Exogenous Variables
 ```{r}
 temphumidexog_export <- data.frame(date=forecast_dates, load=temphumidity_forecast_FULL$mean)
 write.csv(temphumidexog_export, "./Submissions/exog_humidtemp.csv", row.names = FALSE)
 ```
 
-### Just Temperature
+### Just Temperature Exogenous Variable
 ```{r}
 temp_only<- auto.arima(ts_demand_train,
                   seasonal = FALSE, 
@@ -397,6 +397,8 @@ accuracy(temponly_forecast)
 #### ARIMA with Temperature Exogenous Discussion
 Although the plot appears to show that the lines match the observed data better, the MAPE and RMSE suggest that including temperature does not improve the model given that these values were higher than the RMSE/MAPE with both exogenous variables. Still, it is lower than other RMSE/MAPE values and so a full forecast can be performed. 
 
+#### Full Dataset Humidity Exogenous Forecast
+
 ```{r warning=FALSE, message=FALSE}
 fulltemp_arima <- auto.arima(ts_daily_demand, 
                              seasonal=FALSE, 
@@ -417,13 +419,13 @@ autoplot(temp_forecast_FULL) + ylab("Demand")
 accuracy(temp_forecast_FULL)
 ```
 
-### Export Model Results with Exogenous Variables
+#### Export Model Results with Temperature Variables
 ```{r}
 temp_export <- data.frame(date=forecast_dates, load=temp_forecast_FULL$mean)
 write.csv(temp_export, "./Submissions/exog_temp.csv", row.names = FALSE)
 ```
 
-### Just Humidity
+### Just Humidity Exogenous Variable
 ```{r, warning = FALSE, message=FALSE}
 humidity <- auto.arima(ts_demand_train,
                   seasonal = FALSE, 
@@ -452,6 +454,7 @@ accuracy(humidity_forecast)
 #### ARIMA with Humidity Exogenous Discussion
 The RMSE was 539.767 and the MAPE was 11.5054. 
 
+#### Full Dataset Humidity Exogenous Forecast
 ```{r warning=FALSE, message=FALSE}
 full_humidity_arima <- auto.arima(ts_daily_demand, 
                              seasonal=FALSE, 
@@ -472,7 +475,7 @@ autoplot(humidity_forecast_FULL) + ylab("Demand")
 accuracy(humidity_forecast_FULL)
 ```
 
-### Export Model Results with Exogenous Variables
+#### Export Model Results with Exogenous Variables
 ```{r}
 humidity_export <- data.frame(date=forecast_dates, load=humidity_forecast_FULL$mean)
 write.csv(humidity_export, "./Submissions/exog_humidity.csv", row.names = FALSE)
