@@ -781,12 +781,157 @@ write.csv(NN2_export, file="./Submissions/NN_v2.csv", row.names=FALSE)
 
 ```
 
+
+## Neural Network Model 3
+```{r}
+# Fit Model on Training Data
+NN_fit3 <- nnetar(ts_demand_train,
+                 p=1,
+                 P=1,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for3 <- forecast(NN_fit3, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot foresting results
+autoplot(NN_for3) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for3, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for3$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for3$mean, ts_demand_test)
+NN3_scores <- accuracy(NN_for3$mean, ts_demand_test)
+```
+
+### NN3 Interpretation
+THE RMSE is 1151.663 and the MAPE is 18.813. The MAPE is higher than the other neural network model, but still relatively low. 
+
+### Full Data Modeling - Neural Network 3
+```{r}
+#Fit and forecast full neural network
+NN3_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=1,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for3 <- forecast(NN3_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for3, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for3)
+
+```
+
+### Export Model Results - NN3
+```{r}
+NN3_export <- data.frame(date=forecast_dates, load=NN_full_for3$mean)
+write.csv(NN3_export, file="./Submissions/NN_v3.csv", row.names=FALSE)
+
+```
+
+
+## Neural Network Model 4
+```{r}
+# Fit Model on Training Data
+NN_fit4 <- nnetar(ts_demand_train,
+                 p=1,
+                 P=2,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for4 <- forecast(NN_fit4, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot foresting results
+autoplot(NN_for4) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_demand_train) +
+  autolayer(NN_for4, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for4$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for4$mean, ts_demand_test)
+NN3_scores <- accuracy(NN_for3$mean, ts_demand_test)
+```
+
+### NN3 Interpretation
+THE RMSE is 1151.663 and the MAPE is 18.813. The MAPE is higher than the other neural network model, but still relatively low. 
+
+### Full Data Modeling - Neural Network 4
+```{r}
+#Fit and forecast full neural network
+NN4_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=2,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for4 <- forecast(NN4_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for4, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for4)
+
+```
+
+### Export Model Results - NN4
+```{r}
+NN4_export <- data.frame(date=forecast_dates, load=NN_full_for4$mean)
+write.csv(NN4_export, file="./Submissions/NN_v4.csv", row.names=FALSE)
+
+```
+
+
 ## Compare All Models 
 ```{r}
 scores <- as.data.frame(rbind(ARIMA_four_scores, ARIMA_reg_scores, TBATS_scores, ETS_scores, NN_scores))
 row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
 
 ```
+
+
 
 
 ## Saving Code (don't want to delete, but not sure we need it)
