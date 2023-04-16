@@ -541,7 +541,7 @@ checkresiduals(ARIMA_reg_forecast)
 ```
 
 
-## TBATS Model 
+## TBATS Model 1
 
 ```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
 # TBATS can take time to fit
@@ -965,7 +965,7 @@ NN5_scores <- accuracy(NN_for5$mean, ts_demand_test)
 ### NN5 Interpretation
 THE RMSE is 1110.899 and the MAPE is 18.2.  
 
-### Full Data Modeling - Neural Network 4
+### Full Data Modeling - Neural Network 5
 ```{r}
 #Fit and forecast full neural network
 NN5_fit_full <-  nnetar(ts_daily_demand,
@@ -1032,10 +1032,10 @@ accuracy(NN_for6$mean, ts_demand_test)
 NN6_scores <- accuracy(NN_for6$mean, ts_demand_test)
 ```
 
-### NN5 Interpretation
+### NN6 Interpretation
 THE RMSE is 1082.454 and the MAPE is 18.3.  
 
-### Full Data Modeling - Neural Network 4
+### Full Data Modeling - Neural Network 6
 ```{r}
 #Fit and forecast full neural network
 NN6_fit_full <-  nnetar(ts_daily_demand,
@@ -1056,12 +1056,89 @@ accuracy(NN_full_for6)
 
 ```
 
-### Export Model Results - NN5
+### Export Model Results - NN6
 ```{r}
 NN6_export <- data.frame(date=forecast_dates, load=NN_full_for6$mean)
 write.csv(NN6_export, file="./Submissions/NN_v6.csv", row.names=FALSE)
 
 ```
+
+
+## ARIMA with Fourier Terms Model 2
+``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+# First Model: 
+ARIMA_Fourier_fit2 <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,2)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_forecast2 <- forecast(ARIMA_Fourier_fit2,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,2),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot forecasting results
+autoplot(ARIMA_Fourier_forecast2) + ylab("Demand")
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_Fourier_forecast2, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Demand")
+
+# Plot model and observed data during 2010
+plot(ARIMA_Fourier_forecast2$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+ARIMA_four_scores2 <- accuracy(ARIMA_Fourier_forecast2$mean, ts_demand_test)
+accuracy(ARIMA_Fourier_forecast2)
+
+```
+
+### ARIMA with Fourier - Training Data Interpretation
+THE RMSE is 510.81 and the MAPE is 11.04 
+
+### Modeling Full Data - ARIMA with Fourier
+After using the training dataset, re-running with the full dataset to forecast into 2011:
+```{r}
+# First Model: 
+ARIMA_Fourier_full2 <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_demand, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_FULLforecast2 <- forecast(ARIMA_Fourier_full2,
+                           xreg=fourier(ts_daily_demand,
+                                        K=c(2,2),
+                                        h=n_forecast),
+                           h=n_forecast) 
+autoplot(ARIMA_Fourier_FULLforecast2) + ylab("Demand")
+
+```
+
+### Export Model Results
+```{r}
+ARIMA_fourier_export2 <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLforecast2$mean)
+write.csv(ARIMA_fourier_export2, "./Submissions/ARIMA_fourier_v3.csv", row.names = FALSE)
+```
+
 
 ## Compare All Models 
 ```{r}
