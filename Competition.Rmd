@@ -335,28 +335,24 @@ fullexog_arima <- auto.arima(ts_daily_demand,
                humidity = daily_humidity$rh_ws20))
 ```
 
+#### Forecasting Exogenous Variables for Full Data Forecast
+In order to forecast using exogenous variables, you first have to forecast those exogenous variables. To start, rather than forecasting temperature and humidity, this forecast will just use the temperature values from the previous year during that time period. 
 ```{r}
 #In order to forecast using exogenous variables you first have to forecast those exogenous variables. 
 
-# Decompose 
-ts_daily_temp %>% mstl() %>%
-  autoplot()
+forecast_dailytemp <- daily_temp%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
+forecast_dailyhumid <- daily_humidity%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
 
-temp_arima <- auto.arima(ts_daily_temp, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=fourier(ts_daily_temp, 
-                                          K=c(2,6)) # 2 weekly cycles, 6 annual cycles
-                             )
 
-temp_forecast <- forecast(ARIMA_Fourier_fit,
-                           xreg=fourier(ts_demand_train,
-                                        K=c(2,6),
-                                        h=365),
-                           h=365
-                           ) 
+ts_temp_forfore <- msts(forecast_dailytemp$avg_t_ws1, 
+                           seasonal.periods =c(7,365.25))
+
+ts_humid_forfore <- msts(forecast_dailyhumid$rh_ws1, 
+                           seasonal.periods =c(7,365.25))
+
 ```
-
 
 ```{r}
 #Forecast Demand with Forecasted temperature and humidity
@@ -368,6 +364,23 @@ temphumidity_forecast <- forecast(tempandhumidity,
                                 temperature = daily_temp$avg_t_ws23, 
                                 humidity = daily_humidity$rh_ws20),
                            h=365) 
+
+# First Model: 
+ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,6)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,6),
+                                        h=365),
+                           h=365
+                           ) 
 
 ```
 
@@ -787,6 +800,31 @@ accuracy(ARIMA_Fourier_fit)
 
 
 ## Saving Code
+## I started forecasting temperature then stopped: 
+```{r}
+
+# Decompose 
+ts_daily_temp %>% mstl() %>%
+  autoplot()
+
+temp_arima <- auto.arima(ts_daily_temp, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_temp, 
+                                          K=c(2,2)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+
+temp_forecast <- forecast(temp_arima,
+                           xreg=fourier(ts_daily_temp,
+                                        K=c(2,2),
+                                        h=n_forecast),
+                           h=n_forecast
+                           ) 
+
+autoplot(temp_forecast) + ylab("Demand")
+```
+
 
 Pasted Code from Original Neural Network export: 
 
