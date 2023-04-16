@@ -6,6 +6,10 @@ editor_options:
   chunk_output_type: console
 ---
 
+## Update from Maggie (notes to self and to group!): 
+I made 3 new models with exogenous variables but for the future forecasting, I just used temperature and humidity values from the jan/feb of the year prior. A really complicated but maybe better model could forecast humidity and temperature using an ARIMA and then put those forecast values into the ARIMA for demand with exogenous variables. However, I think this could be a lot of work. Instead, we could do a few more exogenous variable ones but use different years for the forecast (instead of the temp/humidity for jan and feb 2010 we use 2009 for eaxample) *or* we could get the average temperature and humidity for each day and use that as the forecasted values. That may be the most fruitful but still less complicated than forecasting the values which is good! -- Not saying you have to do this, more making note for myself to remember my thought process! 
+
+Next steps for either of us might include adding any other models that we want (right now we have 9 uploaded to the website), and then tidying up the code. Tidying the code I think will just involve making that table at the end with the final accuracy scores and ideally adding: message=FALSE, warning=FALSE to all code chunks (after r in {r}). Lastly, we can go through the notes in the code chunks that we left for each other and just keep those that make sense/explain our process. 
 
 
 ## Load Libraries
@@ -29,9 +33,6 @@ library(kableExtra)
 
 #### Instructions:
 
-In the folder `/Competition/Data` you will find three datasets one with hourly demand, one with hourly temperature and another with relative humidity from January 2005 to December 2010.
-Your goal is to forecast **daily** demand for the month of January 2011 based on this historical data. You may or may not use the temperature and relative humidity in your models. The temperature and humidity measurement are from stations close to the household meter data you have.
-
 
 ```{r}
 hourly_demand <- read_excel("./Data/load.xlsx")
@@ -42,12 +43,6 @@ submission_template <- read_excel("./Data/submission_template.xlsx")
 
 
 ## Wrangle/Process the Dataset
-
-#### Instructions: 
-
-You will need to transform hourly data into daily data. See the Rmd file from Lesson 11 for instructions on how to aggregate your dataset using pipes.
-
-Note that I provided hourly data. You should take the **average** of the 24 hours to obtain the daily load.
 
 
 ```{r}
@@ -113,7 +108,6 @@ rm(cor_mat, daily_all, daily_forcor, daily_forcor_mat, submission_template)
 
 #### Instructions: 
 
-After you process your dataset use the `msts()` function to create a time series object. You need to use `msts()` instead of `ts()` because your daily data will have more than one seasonal component.
 
 ```{r}
 # Look at data
@@ -485,11 +479,6 @@ write.csv(humidity_export, "./Submissions/exog_humidity.csv", row.names = FALSE)
 ```
 
 
-### Discussion of ARIMA with Exogenous Variables: 
-Though none of the exogenous variable models scored highly based on the accuracy evaluations, the best model of the three included both exogenous variables. This will be selected to forecast using the full dataset. 
-
-
-
 
 ## ARIMA with Independent Variables
 Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
@@ -796,51 +785,8 @@ row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
 
 ```
 
-### ARIMA with exogenous variables 
-``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
-# First Model: 
-ARIMA_Fourier_fit2 <- auto.arima(ts_demand_train, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=fourier(ts_demand_train,
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
-                             )
 
-#Forecast with ARIMA fit
-#also need to specify h for fourier terms
-ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit2,
-                           xreg=fourier(ts_demand_train,
-                                        K=c(2,2),
-                                        h=365),
-                           h=365
-                           ) 
-
-#Plot foresting results
-autoplot(ARIMA_Fourier_forecast) + ylab("Demand")
-
-#Plot model + all observed data
-autoplot(ts_daily_demand) +
-  autolayer(ARIMA_Fourier_forecast, series="ARIMA_FOURIER",PI=FALSE) +
-  ylab("Demand")
-
-# Plot model and observed data during 2010
-plot(ARIMA_Fourier_forecast$mean,
-     xlab = "Date",
-     ylab = "Demand",
-     ylim = c(1000, 10000))
-lines(ts_demand_test,
-      type = "l",
-      col = 4,
-      lwd = 2)
-legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
-       col=c("black",4), lwd=3, cex=0.8)
-
-accuracy(ARIMA_Fourier_fit)
-```
-
-
-
-## Saving Code
+## Saving Code (don't want to delete, but not sure we need it)
 ## I started forecasting temperature then stopped: 
 ```{r}
 
