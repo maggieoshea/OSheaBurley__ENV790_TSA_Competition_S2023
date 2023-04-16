@@ -161,6 +161,16 @@ ts_demand_test <- subset(ts_demand_test,
                          end = length(ts_demand_test)-1) 
 # **NOTE**: also something odd going on here with the dates where we are getting an observation for 1/1/2011
 
+ts_temp_test <- subset(ts_daily_temp,
+                          start = length(ts_daily_demand)-365)
+ts_temp_test <- subset(ts_temp_test,
+                         end = length(ts_temp_test)-1) 
+
+ts_humid_test <- subset(ts_daily_humidity,
+                          start = length(ts_daily_demand)-365)
+ts_humid_test <- subset(ts_humid_test,
+                         end = length(ts_humid_test)-1) 
+
 # Decompose 
 ts_daily_demand %>% mstl() %>%
   autoplot()
@@ -283,7 +293,7 @@ write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names 
 ## ARIMA with Exogenous Variables
 
 ### Both Temperature and Humidity 
-```{r}
+```{r warnings = FALSE, message=FALSE}
 tempandhumidity <- auto.arima(ts_demand_train,
                   seasonal = FALSE, 
                   lambda = 0,
@@ -292,14 +302,14 @@ tempandhumidity <- auto.arima(ts_demand_train,
                humidity=ts_humid_train,
                temperature=ts_temp_train))
 
+
+
 #Forecast 
 temphumidity_forecast <- forecast(tempandhumidity,
                            xreg=cbind(fourier(ts_demand_train, 
-                                          K=c(2,6)
-                                         # ,h=365 --> I included this originally but it won't run with it here, so tagged it out. 
-                                         ),
-                                humidity=ts_humid_train,
-                                temperature=ts_temp_train),
+                                          K=c(2,6),h=365),
+                                humidity=ts_humid_test,
+                                temperature=ts_temp_test),
                            h=365) 
 
 #Plot model + all observed data
@@ -308,34 +318,79 @@ autoplot(ts_daily_demand) +
   ylab("Demand")
 
 accuracy(temphumidity_forecast)
-# Shows a really high RMSE
+
 ```
 
 #### Discussion of ARIMA with 2 Exogenous Variables (Temp and Humidity)
-This model did not appear to fit the data well, both on the plots and through a quantitative evaluation with the RMSE and MAPE. Because of this, a full forecast was not performed. 
+This model did appear to fit the data well, with lower RMSE than previous model(s) (438.1585) and much lower MAPE as well (10.011). 
+
+#### Full Forecast with both Exogenous Variables
+```{r}
+fullexog_arima <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+         xreg = cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+               temperature = daily_temp$avg_t_ws23, 
+               humidity = daily_humidity$rh_ws20))
+```
+
+```{r}
+#In order to forecast using exogenous variables you first have to forecast those exogenous variables. 
+
+# Decompose 
+ts_daily_temp %>% mstl() %>%
+  autoplot()
+
+temp_arima <- auto.arima(ts_daily_temp, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_temp, 
+                                          K=c(2,6)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+temp_forecast <- forecast(ARIMA_Fourier_fit,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,6),
+                                        h=365),
+                           h=365
+                           ) 
+```
+
+
+```{r}
+#Forecast Demand with Forecasted temperature and humidity
+temphumidity_forecast <- forecast(tempandhumidity,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)
+                                         # ,h=365 --> I included this originally but it won't run with it here, so tagged it out. 
+                                         ),
+                                temperature = daily_temp$avg_t_ws23, 
+                                humidity = daily_humidity$rh_ws20),
+                           h=365) 
+
+```
 
 ### Just Temperature
 ```{r}
 temp_only<- auto.arima(ts_demand_train,
                   seasonal = FALSE, 
                   lambda = 0,
-         xreg = cbind(fourier(ts_demand_train, 
+         xreg = as.matrix(fourier(ts_demand_train, 
                                           K=c(2,6)),
                temperature=ts_temp_train))
-summary(temp_only)
+#summary(temp_only)
 
 #Forecast 
 temponly_forecast <- forecast(temp_only,
-                           xreg=cbind(fourier(ts_demand_train, 
-                                          K=c(2,6)
-                                         # ,h=365 #--> I included this originally but it won't run with it here, so tagged it out. 
-                                         ),
-                                temperature=ts_temp_train),
+                           xreg=as.matrix(fourier(ts_demand_train, 
+                                          K=c(2,6),h=365),
+                                temperature=ts_temp_test),
                            h=365) 
 
 #Plot model + all observed data
 autoplot(ts_daily_demand) +
-  autolayer(temponly_forecast, series="ARIMA with Exogenous Variables",PI=FALSE) +
+  autolayer(temponly_forecast, series="ARIMA with Temperature",PI=FALSE) +
   ylab("Demand")
 
 accuracy(temponly_forecast)
@@ -343,7 +398,44 @@ accuracy(temponly_forecast)
 ```
 
 #### ARIMA with Temperature Exogenous Discussion
-The MAPE and RMSE suggest that including temperature does not improve the model given that these values were higher than 
+Although the plot appears to show that the lines match the observed data better, the MAPE and RMSE suggest that including temperature does not improve the model given that these values were higher than the RMSE/MAPE with both exogenous variables which already had high MAPE/RMSEs. 
+
+### Just Humidity
+```{r}
+humidity <- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = as.matrix(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+               humidity=ts_humid_train))
+
+#Forecast 
+humidity_forecast <- forecast(humidity,
+                           xreg=as.matrix(fourier(ts_demand_train, 
+                                          K=c(2,6)
+                                          ,h=365 
+                                         ),
+                                humidity=ts_humid_test),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(humidity_forecast, series="ARIMA with Exogenous Variables",PI=FALSE) +
+  ylab("Demand")
+
+accuracy(humidity_forecast)
+# Shows the highest RMSE and MAPE compared to the other models with exogenous variables. 
+```
+
+#### ARIMA with Humidity Exogenous Discussion
+The MAPE and RMSE suggest that including humidity, instead of temperature or without temperature, does not improve the model given that these values were higher than the RMSE/MAPE for both models with exogenous variables. 
+
+
+### Discussion of ARIMA with Exogenous Variables: 
+Though none of the exogenous variable models scored highly based on the accuracy evaluations, the best model of the three included both exogenous variables. This will be selected to forecast using the full dataset. 
+
+
+
 
 ## ARIMA with Independent Variables
 Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
