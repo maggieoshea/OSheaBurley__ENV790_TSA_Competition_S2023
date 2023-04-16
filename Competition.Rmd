@@ -481,7 +481,7 @@ accuracy(humidity_forecast_FULL)
 ### Export Model Results with Exogenous Variables
 ```{r}
 humidity_export <- data.frame(date=forecast_dates, load=humidity_forecast_FULL$mean)
-write.csv(humidity_export, "./Submissions/exog_temp.csv", row.names = FALSE)
+write.csv(humidity_export, "./Submissions/exog_humidity.csv", row.names = FALSE)
 ```
 
 
