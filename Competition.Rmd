@@ -280,6 +280,30 @@ ARIMA_fourier_export <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLf
 write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v2.csv", row.names = FALSE)
 ```
 
+## ARIMA with Exogenous Variables
+
+# First examine exogenous variables more closely: 
+```{r}
+summary(is.na(daily_temp$avg_t_ws23))
+#No NAs 
+
+summary(is.na(daily_humidity$rh_ws20))
+#No NAs
+```
+
+
+
+```{r}
+tempandhumidity <- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+               temperature=daily_temp$avg_t_ws23,
+               humidity=daily_humidity$rh_ws20))
+```
+
+
 ## ARIMA with Independent Variables
 Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
