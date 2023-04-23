@@ -1,0 +1,1039 @@
+---
+title: "Wrangling Competition Data"
+author: "Katherine Burley & Maggie O'Shea"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Load Libraries
+```{r message = FALSE, warning=FALSE}
+rm(list=ls())
+library(tidyverse)
+library(readxl)
+library(writexl)
+library(lubridate)
+library(ggplot2)
+library(forecast)  
+#library(Kendall)
+library(tseries)
+#library(outliers)
+library(tidyverse)
+library(smooth)
+library(kableExtra)
+```
+
+## Import the Dataset
+```{r warning=FALSE}
+hourly_demand <- read_excel("./Data/load.xlsx")
+hourly_temp<- read_excel("./Data/temperature.xlsx")
+hourly_humidity<- read_excel("./Data/relative_humidity.xlsx")
+submission_template <- read_excel("./Data/submission_template.xlsx")
+```
+
+## Wrangle/Process the Dataset
+```{r warning=FALSE}
+# Demand
+daily_demand <- hourly_demand %>%
+  pivot_longer(cols=h1:h24, names_to = "hour", values_to = "demand") %>%
+  filter(!is.na(demand)) %>% # only a handful of missing hourly obs. Let's try removing them
+  group_by(date, meter_id) %>%
+  summarise(daily_average = mean(demand))
+
+# Temperature
+daily_temp <- hourly_temp%>%
+  group_by(date)%>%
+  summarize(avg_t_ws1 = mean(t_ws1),
+            avg_t_ws2 = mean(t_ws2),
+            avg_t_ws3 = mean(t_ws3),
+            avg_t_ws4 = mean(t_ws4),
+            avg_t_ws5 = mean(t_ws5),
+            avg_t_ws6 = mean(t_ws6),
+            avg_t_ws7 = mean(t_ws7),
+            avg_t_ws8 = mean(t_ws8),
+            avg_t_ws9 = mean(t_ws9),
+            avg_t_ws10 = mean(t_ws10),
+            avg_t_ws11 = mean(t_ws11),
+            avg_t_ws12 = mean(t_ws12),
+            avg_t_ws13 = mean(t_ws13),
+            avg_t_ws13 = mean(t_ws13),
+            avg_t_ws14 = mean(t_ws14),
+            avg_t_ws15 = mean(t_ws15),
+            avg_t_ws16 = mean(t_ws16),
+            avg_t_ws17 = mean(t_ws17),
+            avg_t_ws18 = mean(t_ws18),
+            avg_t_ws19 = mean(t_ws19),
+            avg_t_ws20 = mean(t_ws20),
+            avg_t_ws21 = mean(t_ws21),
+            avg_t_ws22 = mean(t_ws22),
+            avg_t_ws23 = mean(t_ws23),
+            avg_t_ws24 = mean(t_ws24),
+            avg_t_ws25 = mean(t_ws25),
+            avg_t_ws26 = mean(t_ws26),
+            avg_t_ws27 = mean(t_ws27),
+            avg_t_ws28 = mean(t_ws28))
+
+# Humidity
+daily_humidity <- hourly_humidity%>%
+  pivot_longer(cols = -c(hr, date), names_to = "rh", values_to = "humidity")%>%
+  group_by(date, rh)%>%
+  summarize(avg_humidity = mean(humidity))%>%
+  pivot_wider(values_from = "avg_humidity", names_from = "rh")
+
+# Extract forecast dates from the submission template
+forecast_dates <- submission_template$date
+rm(cor_mat, daily_all, daily_forcor, daily_forcor_mat, submission_template)
+  
+```
+
+## Create a Time Series Object
+```{r warning=FALSE}
+# Create ts object
+ts_daily_demand <- msts(daily_demand$daily_average, 
+                           seasonal.periods =c(7, 365.25),
+                           start=c(2005,01,01))
+
+ts_daily_humidity <- msts(daily_humidity$rh_ws20, 
+                           seasonal.periods =c(7,365.25),
+                           start=c(2005,01,01))
+ts_daily_temp <- msts(daily_temp$avg_t_ws23, 
+                           seasonal.periods =c(7,365.25),
+                           start=c(2005,01,01))
+  # Using temperature and humidity vars with highest correlation to demand - see next chunk!
+
+# Subset training data
+ts_demand_train <- subset(ts_daily_demand,
+                          end = length(ts_daily_demand)-365)
+ts_humid_train <- subset(ts_daily_humidity,
+                          end = length(ts_daily_demand)-365)
+ts_temp_train <- subset(ts_daily_temp,
+                          end = length(ts_daily_demand)-365)
+
+# Subset testing data
+ts_demand_test <- subset(ts_daily_demand,
+                         start = length(ts_daily_demand)-365)
+ts_demand_test <- subset(ts_demand_test,
+                         end = length(ts_demand_test)-1) 
+
+ts_temp_test <- subset(ts_daily_temp,
+                          start = length(ts_daily_demand)-365)
+ts_temp_test <- subset(ts_temp_test,
+                         end = length(ts_temp_test)-1) 
+
+ts_humid_test <- subset(ts_daily_humidity,
+                          start = length(ts_daily_demand)-365)
+ts_humid_test <- subset(ts_humid_test,
+                         end = length(ts_humid_test)-1) 
+```
+
+## Decompose and Check the ACF + PACF
+
+```{r warning=FALSE}
+# Decompose 
+ts_daily_demand %>% mstl() %>%
+  autoplot()
+
+decompose <- data.frame(mstl(ts_daily_demand))
+ts_remainder <- ts(decompose$Remainder)
+
+## Look for correlations between humidity, temp, and demand/de-seasoned demand
+deseasoned <- data.frame(date = daily_demand$date, deseas_demand = ts_remainder)
+daily_all <- daily_demand %>%
+  left_join(deseasoned, by="date") %>%
+  left_join(daily_humidity, by="date") %>%
+  left_join(daily_temp, by="date") %>%
+  ungroup()
+
+daily_forcor <- daily_all %>%
+  select(-c(date, meter_id))
+
+daily_forcor_mat <- data.matrix(daily_forcor)
+
+cor_mat <- cor(daily_forcor, use="complete")
+cor_results <- data.frame(corr = cor_mat[,1:2])
+cor_results <- cor_results %>%
+  mutate(corr.daily_average = abs(corr.daily_average),
+         corr.deseas_demand = abs(corr.deseas_demand))
+  # none of the humidity or temp vars have a very strong correlation with demand or deseasoned demand...
+
+# Plot the time series over time, ACF and PACF
+par(mfrow=c(1,3), mar=c(6, 4, 4, 2))
+plot(ts_remainder, main="Remainder Time Series", ylab = "Demand")
+Acf(ts_remainder,lag.max=40, main="ACF") 
+Pacf(ts_remainder,lag.max=40, main="PACF")
+  # Looks like an AR process.
+  # There is also still some seasonality visible in the PACF.
+
+```
+
+## Temperature and Humidity Predictions for Models with Exogenous Variables
+
+### Use last year's values
+In order to forecast using exogenous variables, you first have to forecast those exogenous variables. To start, rather than forecasting temperature and humidity, this forecast will just use the temperature values from the previous year during that time period.
+```{r warning=FALSE}
+#In order to forecast using exogenous variables you first have to forecast those exogenous variables. 
+forecast_dailytemp <- daily_temp%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
+forecast_dailyhumid <- daily_humidity%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
+
+
+ts_temp_forfore <- msts(forecast_dailytemp$avg_t_ws1,
+                        seasonal.periods =c(7,365.25),
+                        start=c(2011,01,01))
+
+ts_humid_forfore <- msts(forecast_dailyhumid$rh_ws1,
+                         seasonal.periods =c(7,365.25),
+                         start=c(2011,01,01))
+
+```
+
+### Use average daily values
+As an alternative option, we will use average daily values of temperature and humidity from the observable data as the forecast for 2011.
+```{r warning=FALSE}
+# Use average daily values as forecast for temperature and humidity
+temp_for <- daily_temp %>%
+  select(date, avg_t_ws23) %>%
+  mutate(doy = yday(date)) %>%
+  group_by(doy) %>%
+  summarise(avg_temp = mean(avg_t_ws23)) %>%
+  ungroup() %>%
+  filter(doy<=59)
+
+ts_temp_for <- msts(temp_for$avg_temp,
+                    seasonal.periods =c(7,365.25),
+                    start=c(2011,01,01))
+
+humid_for <- daily_humidity %>%
+  select(date, rh_ws20) %>%
+  mutate(doy = yday(date)) %>%
+  group_by(doy) %>%
+  summarise(avg_humid = mean(rh_ws20)) %>%
+  ungroup() %>%
+  filter(doy<=59)
+
+ts_humid_for <- msts(temp_for$avg_temp,
+                    seasonal.periods =c(7,365.25),
+                    start=c(2011,01,01))
+
+# Temperature
+autoplot(ts_temp_train, series="Train") +
+  autolayer(ts_temp_test, series="Test") +
+  autolayer(ts_temp_forfore, series="Forecast1") +
+  autolayer(ts_temp_for, series="Forecast 2") +
+  ylab("Temperature")
+
+# Humidity
+autoplot(ts_humid_train, series="Train") +
+  autolayer(ts_humid_test, series="Test") +
+  autolayer(ts_humid_forfore, series="Forecast1") +
+  autolayer(ts_humid_for, series="Forecast 2") +
+  ylab("Humidity")
+
+# Will use Forecast 2 in the models.
+
+```
+
+# Fit Models to your Data
+
+Fit models to your dataset considering the period Jan 1st 2005 to Dec 31st 2009. First, we will consider an ARIMA with Fourier terms to account for multiple seasonalities in our data. For this specification, we assume that there are two sine and cosine terms during the weekly season and six sine and cosine terms during the annual season, after testing different combinations of K.  
+
+## ARIMA with Fourier Terms Model 
+``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+# First Model: 
+ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,6)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_forecast <- forecast(ARIMA_Fourier_fit,
+                           xreg=fourier(ts_demand_train,
+                                        K=c(2,6),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_Fourier_forecast, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Demand")
+
+# Plot residuals
+checkresiduals(ARIMA_Fourier_forecast)
+
+# Calculate Scores
+ARIMA_four_scores <- accuracy(ARIMA_Fourier_forecast$mean, ts_demand_test)
+
+```
+
+### ARIMA with Fourier - Training Data Interpretation
+THE RMSE is 951.8972 and the MAPE is 23.426. 
+
+### Modeling Full Data - ARIMA with Fourier
+After using the training dataset, re-running with the full dataset to forecast into 2011:
+```{r}
+# First Model: 
+ARIMA_Fourier_full <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_demand, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+n_forecast = 31+28 # January and February - 59 days
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Fourier_FULLforecast <- forecast(ARIMA_Fourier_full,
+                           xreg=fourier(ts_daily_demand,
+                                        K=c(2,2),
+                                        h=n_forecast),
+                           h=n_forecast
+                           ) 
+
+# Plot Forecast
+autoplot(ARIMA_Fourier_FULLforecast) + ylab("Demand")
+
+```
+
+### Export Model Results
+```{r}
+ARIMA_fourier_export <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULLforecast$mean)
+# write.csv(ARIMA_fourier_export, "./Submissions/ARIMA_fourier_v3.csv", row.names = FALSE)
+```
+
+## ARIMA with Exogenous Variables
+
+### Both Temperature and Humidity 
+```{r warnings = FALSE}
+tempandhumidity <- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+               humidity=ts_humid_train,
+               temperature=ts_temp_train))
+
+
+
+#Forecast 
+temphumidity_forecast <- forecast(tempandhumidity,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),h=365),
+                                humidity=ts_humid_test,
+                                temperature=ts_temp_test),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(temphumidity_forecast, series="ARIMA with Exog Vars",PI=FALSE) +
+  ylab("Demand")
+
+# Plot residuals
+checkresiduals(temphumidity_forecast)
+
+# Calculate Scores
+Exog1_scores <- accuracy(temphumidity_forecast$mean, ts_demand_test)
+
+```
+
+#### Discussion of ARIMA with 2 Exogenous Variables (Temp and Humidity)
+This model did appear to fit the data well, with lower RMSE than previous model(s) (404.31) and much lower MAPE as well (9.35). 
+
+#### Full Forecast with both Exogenous Variables
+```{r warnings = FALSE}
+fullexog_arima <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+         xreg = cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+                      temperature = ts_daily_temp,
+                      humidity = ts_daily_humidity))
+
+#Forecast Demand with Forecasted temperature and humidity
+temphumidity_forecast_FULL <- forecast(tempandhumidity,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),
+                                          h=n_forecast),
+                                temperature = ts_temp_for, 
+                                humidity = ts_humid_for),
+                           h=n_forecast) 
+
+autoplot(temphumidity_forecast_FULL) + ylab("Demand")
+```
+
+#### Export Model Results with Exogenous Variables
+```{r warnings = FALSE}
+temphumidexog_export <- data.frame(date=forecast_dates, load=temphumidity_forecast_FULL$mean)
+write.csv(temphumidexog_export, "./Submissions/exog_humidtemp_v3.csv", row.names = FALSE)
+```
+
+### Just Temperature Exogenous Variable
+```{r warnings = FALSE}
+temp_only<- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = as.matrix(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+               temperature=ts_temp_train))
+#summary(temp_only)
+
+#Forecast 
+temponly_forecast <- forecast(temp_only,
+                           xreg=as.matrix(fourier(ts_demand_train, 
+                                          K=c(2,6),h=365),
+                                temperature=ts_temp_test),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(temponly_forecast, series="ARIMA with Temperature",PI=FALSE) +
+  ylab("Demand")
+
+# Plot residuals
+checkresiduals(temponly_forecast)
+
+# Calculate scores
+accuracy(temponly_forecast)
+Exog2_scores <- accuracy(temponly_forecast$mean, ts_demand_test)
+
+# A higher RMSE than the temperature and humidity model. 
+```
+
+#### ARIMA with Temperature Exogenous Discussion
+Although the plot appears to show that the lines match the observed data better, the MAPE and RMSE suggest that including temperature does not improve the model given that these values were higher than the RMSE/MAPE with both exogenous variables. Still, it is lower than other RMSE/MAPE values and so a full forecast can be performed. 
+
+#### Full Dataset Humidity Exogenous Forecast
+
+```{r warnings = FALSE}
+fulltemp_arima <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+         xreg = cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+               temperature = ts_daily_temp))
+
+#Forecast with 'forecasted' temperature
+temp_forecast_FULL <- forecast(fulltemp_arima,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),
+                                          h=n_forecast),
+                                temperature = ts_temp_for),
+                           h=n_forecast) 
+
+autoplot(temp_forecast_FULL) + ylab("Demand")
+```
+
+#### Export Model Results with Temperature Variables
+```{r warnings = FALSE}
+temp_export <- data.frame(date=forecast_dates, load=temp_forecast_FULL$mean)
+write.csv(temp_export, "./Submissions/exog_temp_v3.csv", row.names = FALSE)
+```
+
+### Just Humidity Exogenous Variable
+```{r warnings = FALSE}
+humidity <- auto.arima(ts_demand_train,
+                  seasonal = FALSE, 
+                  lambda = 0,
+         xreg = cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+               humidity=ts_humid_train))
+
+#Forecast 
+humidity_forecast <- forecast(humidity,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)
+                                          ,h=365 
+                                         ),
+                                humidity=ts_humid_test),
+                           h=365) 
+
+#Plot model + all observed data
+autoplot(ts_daily_demand) +
+  autolayer(humidity_forecast, series="ARIMA with Humidity Exogenous Variable",PI=FALSE) +
+  ylab("Demand")
+
+# Calculate scores
+accuracy(humidity_forecast)
+Exog3_scores <- accuracy(humidity_forecast$mean, ts_demand_test)
+```
+
+#### ARIMA with Humidity Exogenous Discussion
+The RMSE was 499.3725 and the MAPE was 11.26524. 
+
+#### Full Dataset Humidity Exogenous Forecast
+```{r warning=FALSE, message=FALSE}
+full_humidity_arima <- auto.arima(ts_daily_demand, 
+                             seasonal=FALSE, 
+                             lambda=0,
+         xreg = cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+               humidity = ts_daily_humidity))
+
+#Forecast Demand with Forecasted humidity
+humidity_forecast_FULL <- forecast(full_humidity_arima,
+                           xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),
+                                          h=n_forecast),
+                                humidity = ts_humid_for),
+                           h=n_forecast) 
+
+autoplot(humidity_forecast_FULL) + ylab("Demand")
+```
+
+#### Export Model Results with Exogenous Variables
+```{r}
+humidity_export <- data.frame(date=forecast_dates, load=humidity_forecast_FULL$mean)
+# write.csv(humidity_export, "./Submissions/exog_humidity_v3.csv", row.names = FALSE)
+```
+
+## TBATS
+```{r TBATS, echo=TRUE, message=FALSE, warning=FALSE}
+# TBATS can take time to fit
+TBATS_fit <- tbats(ts_demand_train)
+TBATS_for <- forecast(TBATS_fit, h=365)
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(TBATS_for, series="TBATS",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot residuals
+checkresiduals(TBATS_for)
+
+# Calculate Scores
+TBATS_scores <- accuracy(TBATS_for$mean, ts_demand_test)
+
+```
+
+### TBATS Interpretation
+THE RMSE is 912.102 and the MAPE is 18.35. This model performed better than the ARIMA with fourier.
+
+### Modeling Full Data - TBATS
+After using the training dataset, re-running with the full dataset to forecast into 2011:
+```{r}
+# First Model: 
+TBATS_fit_full <- tbats(ts_daily_demand)
+TBATS_for_full <- forecast(TBATS_fit_full, h=n_forecast)
+
+autoplot(TBATS_for_full) + ylab("Demand")
+
+```
+
+### Export Model Results - TBATs
+```{r}
+TBATS_export <- data.frame(date=forecast_dates, load=TBATS_for_full$mean)
+# write.csv(TBATS_export, "./Submissions/TBATS_v1.csv", row.names = FALSE)
+
+```
+
+## STL + ETS
+```{r}
+#Fit and forecast STL + ETS model to data
+ETS_fit <-  stlf(ts_demand_train,h=365)
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(ETS_fit, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+# Plot Residuals
+checkresiduals(ETS_fit)
+
+# Calculate Scores
+ETS_scores <- accuracy(ETS_fit$mean, ts_demand_test)
+```
+
+### STL + ETS Interpretation 
+The RMSE is 1231.962 and the MAPE is 33.30224, both higher than the original ARIMA_Fourier.  
+
+### Full Data Modeling - STL+ETS
+```{r}
+#Fit and forecast STL + ETS model to data
+ETS_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+
+#Plot foresting results
+autoplot(ETS_fit) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(ETS_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+### Export Model Results - ETS
+```{r}
+ETS_STL_export <- data.frame(date=forecast_dates, load=ETS_fit_full$mean)
+# write.csv(ETS_STL_export, file="./Submissions/ETS_STL_v1.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 1 
+```{r}
+# Fit Model on Training Data
+NN_fit <- nnetar(ts_demand_train,
+                 p=1,
+                 P=0,
+                 xreg=fourier(ts_demand_train, K=c(3.5,2)))
+
+# Forecast on Testing Data
+NN_for <- forecast(NN_fit, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(3.5,2),h=365))
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot residuals
+checkresiduals(NN_for)
+
+# Calculate scores
+accuracy(NN_for$mean, ts_demand_test)
+NN_scores <- accuracy(NN_for$mean, ts_demand_test)
+
+```
+
+### NN Interpretation
+THE RMSE is 997.6037 and the MAPE is 16.52452. The MAPE appears to be the lowest among models, but RMSE is in the middle of the range.
+
+### Neural Network Output Submission 1.5
+I called this 1.5 because our initial neural network output v1 was accidentally the fitted data of an STL-ETS model. So I just tweaked it to make sure it was exporting the right model! The original code is at the bottom where I am saving code I don't want to delete but just want to streamline the RMD. 
+```{r}
+#Fit and forecast full neural network
+NN_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=0,
+                 xreg=fourier(ts_daily_demand, K=c(3.5,2)))
+
+NN_full_for <- forecast(NN_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_daily_demand, 
+                                          K=c(3.5,2),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for)
+
+```
+
+### Export Model Results - NN
+```{r}
+NN_export15 <- data.frame(date=forecast_dates, load=NN_full_for$mean)
+# write.csv(NN_export15, file="./Submissions/NN_v1p5.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 2
+```{r}
+# Fit Model on Training Data
+NN_fit2 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=0,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for2 <- forecast(NN_fit2, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for2, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot residuals
+checkresiduals(NN_for2)
+
+# Calculate scores
+accuracy(NN_for2$mean, ts_demand_test)
+NN2_scores <- accuracy(NN_for2$mean, ts_demand_test)
+
+```
+
+### NN2 Interpretation
+THE RMSE is 1088.129 and the MAPE is 17.39624 The MAPE is higher than the other neural network model, but still relatively low. 
+
+### Full Data Modeling - Neural Network 2
+```{r}
+#Fit and forecast full neural network
+NN2_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=0,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for2 <- forecast(NN2_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for2, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for2)
+
+```
+
+### Export Model Results - NN2
+```{r}
+NN2_export <- data.frame(date=forecast_dates, load=NN_full_for2$mean)
+# write.csv(NN2_export, file="./Submissions/NN_v2.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 3
+```{r}
+# Fit Model on Training Data
+NN_fit3 <- nnetar(ts_demand_train,
+                 p=1,
+                 P=1,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for3 <- forecast(NN_fit3, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for3, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Calculate scores
+accuracy(NN_for3$mean, ts_demand_test)
+NN3_scores <- accuracy(NN_for3$mean, ts_demand_test)
+```
+
+### NN3 Interpretation
+THE RMSE is 1158.751 and the MAPE is 18.84508. 
+
+### Full Data Modeling - Neural Network 3
+```{r}
+#Fit and forecast full neural network
+NN3_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=1,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for3 <- forecast(NN3_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for3, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for3)
+
+```
+
+### Export Model Results - NN3
+```{r}
+NN3_export <- data.frame(date=forecast_dates, load=NN_full_for3$mean)
+# write.csv(NN3_export, file="./Submissions/NN_v3.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 4
+```{r}
+# Fit Model on Training Data
+NN_fit4 <- nnetar(ts_demand_train,
+                 p=1,
+                 P=2,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for4 <- forecast(NN_fit4, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for4, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_for4$mean, ts_demand_test)
+NN4_scores <- accuracy(NN_for4$mean, ts_demand_test)
+```
+
+### NN5 Interpretation
+THE RMSE is 1119.653 and the MAPE is 19.45936. 
+
+### Full Data Modeling - Neural Network 4
+```{r}
+#Fit and forecast full neural network
+NN4_fit_full <-  nnetar(ts_daily_demand,
+                 p=1,
+                 P=2,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for4 <- forecast(NN4_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for4, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for4)
+
+```
+
+### Export Model Results - NN4
+```{r}
+NN4_export <- data.frame(date=forecast_dates, load=NN_full_for4$mean)
+# write.csv(NN4_export, file="./Submissions/NN_v4.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 5
+```{r}
+# Fit Model on Training Data
+NN_fit5 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=1,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for5 <- forecast(NN_fit5, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for5, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Calculate scores
+accuracy(NN_for5$mean, ts_demand_test)
+NN5_scores <- accuracy(NN_for5$mean, ts_demand_test)
+```
+
+### NN5 Interpretation
+THE RMSE is 1095.736  and the MAPE is 18.15347.  
+
+### Full Data Modeling - Neural Network 5
+```{r}
+#Fit and forecast full neural network
+NN5_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=1,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for5 <- forecast(NN5_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for5, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for5)
+
+```
+
+### Export Model Results - NN5
+```{r}
+NN5_export <- data.frame(date=forecast_dates, load=NN_full_for5$mean)
+# write.csv(NN5_export, file="./Submissions/NN_v5.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 6
+```{r}
+# Fit Model on Training Data
+NN_fit6 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=2,
+                 xreg=fourier(ts_demand_train, K=c(2,6)))
+
+# Forecast on Testing Data
+NN_for6 <- forecast(NN_fit6, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=365))
+
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for6, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Calculate Scores
+accuracy(NN_for6$mean, ts_demand_test)
+NN6_scores <- accuracy(NN_for6$mean, ts_demand_test)
+```
+
+### NN6 Interpretation
+THE RMSE is 1055.742 and the MAPE is 17.88271. 
+Across all NN models, V6 (p=2, P=2) scored the best on Kaggle, but V1 (p=2,P=0) scores the best in terms of RMSE and MAPE.
+
+### Full Data Modeling - Neural Network 6
+```{r}
+#Fit and forecast full neural network
+NN6_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=2,
+                 xreg=fourier(ts_daily_demand, K=c(2,6)))
+
+NN_full_for6 <- forecast(NN6_fit_full, 
+                   h=365,
+                   xreg=fourier(ts_demand_train, 
+                                          K=c(2,6),h=59))
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for6, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for6)
+
+```
+
+### Export Model Results - NN6
+```{r}
+NN6_export <- data.frame(date=forecast_dates, load=NN_full_for6$mean)
+# write.csv(NN6_export, file="./Submissions/NN_v6.csv", row.names=FALSE)
+
+```
+
+## Neural Network Model 7 - Include Exogenous Variables
+```{r}
+# Fit Model on Training Data
+NN_fit7 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=2,
+                 xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+                            humidity=ts_humid_train,
+                            temperature=ts_temp_train))
+
+# Forecast on Testing Data
+NN_for7 <- forecast(NN_fit7, 
+                   h=365,
+                   xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),h=365),
+                                humidity=ts_humid_test,
+                                temperature=ts_temp_test))
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for7, series="Neural Network + Exog",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Calculate scores
+accuracy(NN_for7$mean, ts_demand_test)
+NNexog_scores <- accuracy(NN_for7$mean, ts_demand_test)
+```
+
+### NN7 Interpretation
+THE RMSE is 599.2527 and the MAPE is 12.05602.  
+
+### Full Data Modeling - Neural Network 7
+```{r}
+#Fit and forecast full neural network
+NN7_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=2,
+                 xreg=cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+                            temperature = ts_daily_temp,
+                            humidity = ts_daily_humidity))
+
+NN_full_for7 <- forecast(NN7_fit_full, 
+                   xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),
+                                          h=n_forecast),
+                                temperature = ts_temp_for, 
+                                humidity = ts_humid_for),
+                   h=n_forecast)
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for7, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for7)
+
+```
+
+### Export Model Results - NN7
+```{r}
+NN7_export <- data.frame(date=forecast_dates, load=NN_full_for7$mean)
+# write.csv(NN7_export, file="./Submissions/NN_v7.csv", row.names=FALSE)
+
+```
+
+
+## Compare All Models 
+```{r Best Model}
+scores <- as.data.frame(rbind(ARIMA_four_scores, Exog1_scores, Exog2_scores, Exog3_scores, 
+                              TBATS_scores, ETS_scores, NN_scores, NN6_scores, NNexog_scores))
+
+row.names(scores) <- c("ARIMA+Fourier", "ARIMA+Fourier+Temp+Humid", "ARIMA+Fourier+Temp", 
+                       "ARIMA+Fourier+Humid", "TBATS", "ETS", "NN(p=2,P=2)", "NN(p=2,P=0)", "NN+Temp+Humid")
+
+# Which model has the best RMSE?
+best_model_index <- which.min(scores[,"RMSE"])
+cat("The best model by RMSE is:", row.names(scores[best_model_index,]))  
+```
+
+```{r Table}
+# Table of Scores
+kbl(scores,
+    caption = "Forecast Accuracy for Daily Demand",
+    digits = array(9,ncol(scores)),
+    table.attr = "style = \"color: black;\"") %>%
+  kable_styling(full_width = FALSE, position = "center", latex_options = "hold_position") %>%
+  kable_styling() %>%
+  row_spec(row=which.min(scores[,"RMSE"]), bold = T, color = "white", background = "cornflowerblue")
+
+```
+
+```{r Visuals}
+# Plot Forecasting Results - All Data
+autoplot(ts_daily_demand) +
+  autolayer(ARIMA_Fourier_forecast, series="ARIMA + FOURIER",PI=FALSE) +
+  autolayer(temphumidity_forecast, series="ARIMA + Fourier + Temp + Humidity",PI=FALSE) +
+  autolayer(temponly_forecast, series="ARIMA + Fourier + Temp",PI=FALSE) +
+  autolayer(humidity_forecast, series="ARIMA + Fourier + Humidity",PI=FALSE) +
+  autolayer(TBATS_for, series="TBATS",PI=FALSE) +
+  autolayer(ETS_fit, series="STL + ETS",PI=FALSE)+
+  autolayer(NN_for, series="NN(p=2,P=2)",PI=FALSE)+
+  autolayer(NN_for6, series="NN(p=2,P=0)",PI=FALSE)+
+  autolayer(NN_for7, series="NN + Temp + Humidity",PI=FALSE)+
+  ylab("Electricity Demand") +
+  theme_bw()
+
+# Plot Forecasting Results - Testing Data Only
+autoplot(ts_demand_test) +
+  autolayer(ARIMA_Fourier_forecast, series="ARIMA + FOURIER",PI=FALSE) +
+  autolayer(temphumidity_forecast, series="ARIMA + Fourier + Temp + Humidity",PI=FALSE) +
+  autolayer(temponly_forecast, series="ARIMA + Fourier + Temp",PI=FALSE) +
+  autolayer(humidity_forecast, series="ARIMA + Fourier + Humidity",PI=FALSE) +
+  autolayer(TBATS_for, series="TBATS",PI=FALSE) +
+  autolayer(ETS_fit, series="STL + ETS",PI=FALSE)+
+  autolayer(NN_for, series="NN(p=2,P=2)",PI=FALSE)+
+  autolayer(NN_for6, series="NN(p=2,P=0)",PI=FALSE)+
+  autolayer(NN_for7, series="NN + Temp + Humidity",PI=FALSE)+
+  ylab("Electricity Demand") +
+  theme_bw()
+
+```
+When forecasting on the testing data for 2010, the best model was a neural network with temperature and humidity included. The second-best model in terms of RMSE and MAPE was the ARIMA with exogenous variables. The exogenous variables seemed to really improve the models when forecasting on the testing data, which uses observed values of temperature and humidity. However, these models did not perform as well in the Kaggle competition. This is likely due to the simple methods we used to project temperature and humidity values in 2011. In the Kaggle competition, the neural network models without exogenous variables performed the best. After the models with exogenous variables, the two NN models without exogenous variables had the next lowest RMSE and MAPE when evaluating on the testing data. 

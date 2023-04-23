@@ -1,0 +1,1953 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\title{Wrangling Competition Data}
+\author{Katherine Burley \& Maggie O'Shea}
+\date{}
+
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Wrangling Competition Data},
+  pdfauthor={Katherine Burley \& Maggie O'Shea},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.77,0.63,0.00}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+
+\begin{document}
+\maketitle
+
+\hypertarget{load-libraries}{%
+\subsection{Load Libraries}\label{load-libraries}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{rm}\NormalTok{(}\AttributeTok{list=}\FunctionTok{ls}\NormalTok{())}
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\FunctionTok{library}\NormalTok{(readxl)}
+\FunctionTok{library}\NormalTok{(writexl)}
+\FunctionTok{library}\NormalTok{(lubridate)}
+\FunctionTok{library}\NormalTok{(ggplot2)}
+\FunctionTok{library}\NormalTok{(forecast)  }
+\CommentTok{\#library(Kendall)}
+\FunctionTok{library}\NormalTok{(tseries)}
+\CommentTok{\#library(outliers)}
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\FunctionTok{library}\NormalTok{(smooth)}
+\FunctionTok{library}\NormalTok{(kableExtra)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{import-the-dataset}{%
+\subsection{Import the Dataset}\label{import-the-dataset}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{hourly\_demand }\OtherTok{\textless{}{-}} \FunctionTok{read\_excel}\NormalTok{(}\StringTok{"./Data/load.xlsx"}\NormalTok{)}
+\NormalTok{hourly\_temp}\OtherTok{\textless{}{-}} \FunctionTok{read\_excel}\NormalTok{(}\StringTok{"./Data/temperature.xlsx"}\NormalTok{)}
+\NormalTok{hourly\_humidity}\OtherTok{\textless{}{-}} \FunctionTok{read\_excel}\NormalTok{(}\StringTok{"./Data/relative\_humidity.xlsx"}\NormalTok{)}
+\NormalTok{submission\_template }\OtherTok{\textless{}{-}} \FunctionTok{read\_excel}\NormalTok{(}\StringTok{"./Data/submission\_template.xlsx"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{wrangleprocess-the-dataset}{%
+\subsection{Wrangle/Process the
+Dataset}\label{wrangleprocess-the-dataset}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Demand}
+\NormalTok{daily\_demand }\OtherTok{\textless{}{-}}\NormalTok{ hourly\_demand }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_longer}\NormalTok{(}\AttributeTok{cols=}\NormalTok{h1}\SpecialCharTok{:}\NormalTok{h24, }\AttributeTok{names\_to =} \StringTok{"hour"}\NormalTok{, }\AttributeTok{values\_to =} \StringTok{"demand"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(}\SpecialCharTok{!}\FunctionTok{is.na}\NormalTok{(demand)) }\SpecialCharTok{\%\textgreater{}\%} \CommentTok{\# only a handful of missing hourly obs. Let\textquotesingle{}s try removing them}
+  \FunctionTok{group\_by}\NormalTok{(date, meter\_id) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{daily\_average =} \FunctionTok{mean}\NormalTok{(demand))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `summarise()` has grouped output by 'date'. You can override using the
+## `.groups` argument.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Temperature}
+\NormalTok{daily\_temp }\OtherTok{\textless{}{-}}\NormalTok{ hourly\_temp}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(date)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarize}\NormalTok{(}\AttributeTok{avg\_t\_ws1 =} \FunctionTok{mean}\NormalTok{(t\_ws1),}
+            \AttributeTok{avg\_t\_ws2 =} \FunctionTok{mean}\NormalTok{(t\_ws2),}
+            \AttributeTok{avg\_t\_ws3 =} \FunctionTok{mean}\NormalTok{(t\_ws3),}
+            \AttributeTok{avg\_t\_ws4 =} \FunctionTok{mean}\NormalTok{(t\_ws4),}
+            \AttributeTok{avg\_t\_ws5 =} \FunctionTok{mean}\NormalTok{(t\_ws5),}
+            \AttributeTok{avg\_t\_ws6 =} \FunctionTok{mean}\NormalTok{(t\_ws6),}
+            \AttributeTok{avg\_t\_ws7 =} \FunctionTok{mean}\NormalTok{(t\_ws7),}
+            \AttributeTok{avg\_t\_ws8 =} \FunctionTok{mean}\NormalTok{(t\_ws8),}
+            \AttributeTok{avg\_t\_ws9 =} \FunctionTok{mean}\NormalTok{(t\_ws9),}
+            \AttributeTok{avg\_t\_ws10 =} \FunctionTok{mean}\NormalTok{(t\_ws10),}
+            \AttributeTok{avg\_t\_ws11 =} \FunctionTok{mean}\NormalTok{(t\_ws11),}
+            \AttributeTok{avg\_t\_ws12 =} \FunctionTok{mean}\NormalTok{(t\_ws12),}
+            \AttributeTok{avg\_t\_ws13 =} \FunctionTok{mean}\NormalTok{(t\_ws13),}
+            \AttributeTok{avg\_t\_ws13 =} \FunctionTok{mean}\NormalTok{(t\_ws13),}
+            \AttributeTok{avg\_t\_ws14 =} \FunctionTok{mean}\NormalTok{(t\_ws14),}
+            \AttributeTok{avg\_t\_ws15 =} \FunctionTok{mean}\NormalTok{(t\_ws15),}
+            \AttributeTok{avg\_t\_ws16 =} \FunctionTok{mean}\NormalTok{(t\_ws16),}
+            \AttributeTok{avg\_t\_ws17 =} \FunctionTok{mean}\NormalTok{(t\_ws17),}
+            \AttributeTok{avg\_t\_ws18 =} \FunctionTok{mean}\NormalTok{(t\_ws18),}
+            \AttributeTok{avg\_t\_ws19 =} \FunctionTok{mean}\NormalTok{(t\_ws19),}
+            \AttributeTok{avg\_t\_ws20 =} \FunctionTok{mean}\NormalTok{(t\_ws20),}
+            \AttributeTok{avg\_t\_ws21 =} \FunctionTok{mean}\NormalTok{(t\_ws21),}
+            \AttributeTok{avg\_t\_ws22 =} \FunctionTok{mean}\NormalTok{(t\_ws22),}
+            \AttributeTok{avg\_t\_ws23 =} \FunctionTok{mean}\NormalTok{(t\_ws23),}
+            \AttributeTok{avg\_t\_ws24 =} \FunctionTok{mean}\NormalTok{(t\_ws24),}
+            \AttributeTok{avg\_t\_ws25 =} \FunctionTok{mean}\NormalTok{(t\_ws25),}
+            \AttributeTok{avg\_t\_ws26 =} \FunctionTok{mean}\NormalTok{(t\_ws26),}
+            \AttributeTok{avg\_t\_ws27 =} \FunctionTok{mean}\NormalTok{(t\_ws27),}
+            \AttributeTok{avg\_t\_ws28 =} \FunctionTok{mean}\NormalTok{(t\_ws28))}
+
+\CommentTok{\# Humidity}
+\NormalTok{daily\_humidity }\OtherTok{\textless{}{-}}\NormalTok{ hourly\_humidity}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_longer}\NormalTok{(}\AttributeTok{cols =} \SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(hr, date), }\AttributeTok{names\_to =} \StringTok{"rh"}\NormalTok{, }\AttributeTok{values\_to =} \StringTok{"humidity"}\NormalTok{)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(date, rh)}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarize}\NormalTok{(}\AttributeTok{avg\_humidity =} \FunctionTok{mean}\NormalTok{(humidity))}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{pivot\_wider}\NormalTok{(}\AttributeTok{values\_from =} \StringTok{"avg\_humidity"}\NormalTok{, }\AttributeTok{names\_from =} \StringTok{"rh"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## `summarise()` has grouped output by 'date'. You can override using the
+## `.groups` argument.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Extract forecast dates from the submission template}
+\NormalTok{forecast\_dates }\OtherTok{\textless{}{-}}\NormalTok{ submission\_template}\SpecialCharTok{$}\NormalTok{date}
+\FunctionTok{rm}\NormalTok{(cor\_mat, daily\_all, daily\_forcor, daily\_forcor\_mat, submission\_template)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{create-a-time-series-object}{%
+\subsection{Create a Time Series
+Object}\label{create-a-time-series-object}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Create ts object}
+\NormalTok{ts\_daily\_demand }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(daily\_demand}\SpecialCharTok{$}\NormalTok{daily\_average, }
+                           \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{, }\FloatTok{365.25}\NormalTok{),}
+                           \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2005}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+
+\NormalTok{ts\_daily\_humidity }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(daily\_humidity}\SpecialCharTok{$}\NormalTok{rh\_ws20, }
+                           \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                           \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2005}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+\NormalTok{ts\_daily\_temp }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(daily\_temp}\SpecialCharTok{$}\NormalTok{avg\_t\_ws23, }
+                           \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                           \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2005}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+  \CommentTok{\# Using temperature and humidity vars with highest correlation to demand {-} see next chunk!}
+
+\CommentTok{\# Subset training data}
+\NormalTok{ts\_demand\_train }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_demand,}
+                          \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+\NormalTok{ts\_humid\_train }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_humidity,}
+                          \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+\NormalTok{ts\_temp\_train }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_temp,}
+                          \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+
+\CommentTok{\# Subset testing data}
+\NormalTok{ts\_demand\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_demand,}
+                         \AttributeTok{start =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+\NormalTok{ts\_demand\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_demand\_test,}
+                         \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_demand\_test)}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{) }
+
+\NormalTok{ts\_temp\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_temp,}
+                          \AttributeTok{start =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+\NormalTok{ts\_temp\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_temp\_test,}
+                         \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_temp\_test)}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{) }
+
+\NormalTok{ts\_humid\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_daily\_humidity,}
+                          \AttributeTok{start =} \FunctionTok{length}\NormalTok{(ts\_daily\_demand)}\SpecialCharTok{{-}}\DecValTok{365}\NormalTok{)}
+\NormalTok{ts\_humid\_test }\OtherTok{\textless{}{-}} \FunctionTok{subset}\NormalTok{(ts\_humid\_test,}
+                         \AttributeTok{end =} \FunctionTok{length}\NormalTok{(ts\_humid\_test)}\SpecialCharTok{{-}}\DecValTok{1}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{decompose-and-check-the-acf-pacf}{%
+\subsection{Decompose and Check the ACF +
+PACF}\label{decompose-and-check-the-acf-pacf}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Decompose }
+\NormalTok{ts\_daily\_demand }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{mstl}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{autoplot}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{decompose }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\FunctionTok{mstl}\NormalTok{(ts\_daily\_demand))}
+\NormalTok{ts\_remainder }\OtherTok{\textless{}{-}} \FunctionTok{ts}\NormalTok{(decompose}\SpecialCharTok{$}\NormalTok{Remainder)}
+
+\DocumentationTok{\#\# Look for correlations between humidity, temp, and demand/de{-}seasoned demand}
+\NormalTok{deseasoned }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date =}\NormalTok{ daily\_demand}\SpecialCharTok{$}\NormalTok{date, }\AttributeTok{deseas\_demand =}\NormalTok{ ts\_remainder)}
+\NormalTok{daily\_all }\OtherTok{\textless{}{-}}\NormalTok{ daily\_demand }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(deseasoned, }\AttributeTok{by=}\StringTok{"date"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(daily\_humidity, }\AttributeTok{by=}\StringTok{"date"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{left\_join}\NormalTok{(daily\_temp, }\AttributeTok{by=}\StringTok{"date"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ungroup}\NormalTok{()}
+
+\NormalTok{daily\_forcor }\OtherTok{\textless{}{-}}\NormalTok{ daily\_all }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\FunctionTok{c}\NormalTok{(date, meter\_id))}
+
+\NormalTok{daily\_forcor\_mat }\OtherTok{\textless{}{-}} \FunctionTok{data.matrix}\NormalTok{(daily\_forcor)}
+
+\NormalTok{cor\_mat }\OtherTok{\textless{}{-}} \FunctionTok{cor}\NormalTok{(daily\_forcor, }\AttributeTok{use=}\StringTok{"complete"}\NormalTok{)}
+\NormalTok{cor\_results }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{corr =}\NormalTok{ cor\_mat[,}\DecValTok{1}\SpecialCharTok{:}\DecValTok{2}\NormalTok{])}
+\NormalTok{cor\_results }\OtherTok{\textless{}{-}}\NormalTok{ cor\_results }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{corr.daily\_average =} \FunctionTok{abs}\NormalTok{(corr.daily\_average),}
+         \AttributeTok{corr.deseas\_demand =} \FunctionTok{abs}\NormalTok{(corr.deseas\_demand))}
+  \CommentTok{\# none of the humidity or temp vars have a very strong correlation with demand or deseasoned demand...}
+
+\CommentTok{\# Plot the time series over time, ACF and PACF}
+\FunctionTok{par}\NormalTok{(}\AttributeTok{mfrow=}\FunctionTok{c}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{), }\AttributeTok{mar=}\FunctionTok{c}\NormalTok{(}\DecValTok{6}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{4}\NormalTok{, }\DecValTok{2}\NormalTok{))}
+\FunctionTok{plot}\NormalTok{(ts\_remainder, }\AttributeTok{main=}\StringTok{"Remainder Time Series"}\NormalTok{, }\AttributeTok{ylab =} \StringTok{"Demand"}\NormalTok{)}
+\FunctionTok{Acf}\NormalTok{(ts\_remainder,}\AttributeTok{lag.max=}\DecValTok{40}\NormalTok{, }\AttributeTok{main=}\StringTok{"ACF"}\NormalTok{) }
+\FunctionTok{Pacf}\NormalTok{(ts\_remainder,}\AttributeTok{lag.max=}\DecValTok{40}\NormalTok{, }\AttributeTok{main=}\StringTok{"PACF"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-5-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+  \CommentTok{\# Looks like an AR process.}
+  \CommentTok{\# There is also still some seasonality visible in the PACF.}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{temperature-and-humidity-predictions-for-models-with-exogenous-variables}{%
+\subsection{Temperature and Humidity Predictions for Models with
+Exogenous
+Variables}\label{temperature-and-humidity-predictions-for-models-with-exogenous-variables}}
+
+\hypertarget{use-last-years-values}{%
+\subsubsection{Use last year's values}\label{use-last-years-values}}
+
+In order to forecast using exogenous variables, you first have to
+forecast those exogenous variables. To start, rather than forecasting
+temperature and humidity, this forecast will just use the temperature
+values from the previous year during that time period.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#In order to forecast using exogenous variables you first have to forecast those exogenous variables. }
+\NormalTok{forecast\_dailytemp }\OtherTok{\textless{}{-}}\NormalTok{ daily\_temp}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(date }\SpecialCharTok{\textgreater{}} \FunctionTok{as.Date}\NormalTok{(}\StringTok{\textquotesingle{}2009{-}12{-}31\textquotesingle{}}\NormalTok{) }\SpecialCharTok{\&}\NormalTok{ date }\SpecialCharTok{\textless{}}\NormalTok{ (}\StringTok{\textquotesingle{}2010{-}2{-}28\textquotesingle{}}\NormalTok{))}
+\NormalTok{forecast\_dailyhumid }\OtherTok{\textless{}{-}}\NormalTok{ daily\_humidity}\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(date }\SpecialCharTok{\textgreater{}} \FunctionTok{as.Date}\NormalTok{(}\StringTok{\textquotesingle{}2009{-}12{-}31\textquotesingle{}}\NormalTok{) }\SpecialCharTok{\&}\NormalTok{ date }\SpecialCharTok{\textless{}}\NormalTok{ (}\StringTok{\textquotesingle{}2010{-}2{-}28\textquotesingle{}}\NormalTok{))}
+
+
+\NormalTok{ts\_temp\_forfore }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(forecast\_dailytemp}\SpecialCharTok{$}\NormalTok{avg\_t\_ws1,}
+                        \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                        \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2011}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+
+\NormalTok{ts\_humid\_forfore }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(forecast\_dailyhumid}\SpecialCharTok{$}\NormalTok{rh\_ws1,}
+                         \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                         \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2011}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{use-average-daily-values}{%
+\subsubsection{Use average daily
+values}\label{use-average-daily-values}}
+
+As an alternative option, we will use average daily values of
+temperature and humidity from the observable data as the forecast for
+2011.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Use average daily values as forecast for temperature and humidity}
+\NormalTok{temp\_for }\OtherTok{\textless{}{-}}\NormalTok{ daily\_temp }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(date, avg\_t\_ws23) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{doy =} \FunctionTok{yday}\NormalTok{(date)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(doy) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{avg\_temp =} \FunctionTok{mean}\NormalTok{(avg\_t\_ws23)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ungroup}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(doy}\SpecialCharTok{\textless{}=}\DecValTok{59}\NormalTok{)}
+
+\NormalTok{ts\_temp\_for }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(temp\_for}\SpecialCharTok{$}\NormalTok{avg\_temp,}
+                    \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                    \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2011}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+
+\NormalTok{humid\_for }\OtherTok{\textless{}{-}}\NormalTok{ daily\_humidity }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{select}\NormalTok{(date, rh\_ws20) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{doy =} \FunctionTok{yday}\NormalTok{(date)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{group\_by}\NormalTok{(doy) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{summarise}\NormalTok{(}\AttributeTok{avg\_humid =} \FunctionTok{mean}\NormalTok{(rh\_ws20)) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{ungroup}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{filter}\NormalTok{(doy}\SpecialCharTok{\textless{}=}\DecValTok{59}\NormalTok{)}
+
+\NormalTok{ts\_humid\_for }\OtherTok{\textless{}{-}} \FunctionTok{msts}\NormalTok{(temp\_for}\SpecialCharTok{$}\NormalTok{avg\_temp,}
+                    \AttributeTok{seasonal.periods =}\FunctionTok{c}\NormalTok{(}\DecValTok{7}\NormalTok{,}\FloatTok{365.25}\NormalTok{),}
+                    \AttributeTok{start=}\FunctionTok{c}\NormalTok{(}\DecValTok{2011}\NormalTok{,}\DecValTok{01}\NormalTok{,}\DecValTok{01}\NormalTok{))}
+
+\CommentTok{\# Temperature}
+\FunctionTok{autoplot}\NormalTok{(ts\_temp\_train, }\AttributeTok{series=}\StringTok{"Train"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_temp\_test, }\AttributeTok{series=}\StringTok{"Test"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_temp\_forfore, }\AttributeTok{series=}\StringTok{"Forecast1"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_temp\_for, }\AttributeTok{series=}\StringTok{"Forecast 2"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Temperature"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-7-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Humidity}
+\FunctionTok{autoplot}\NormalTok{(ts\_humid\_train, }\AttributeTok{series=}\StringTok{"Train"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_humid\_test, }\AttributeTok{series=}\StringTok{"Test"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_humid\_forfore, }\AttributeTok{series=}\StringTok{"Forecast1"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ts\_humid\_for, }\AttributeTok{series=}\StringTok{"Forecast 2"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Humidity"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-7-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Will use Forecast 2 in the models.}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{fit-models-to-your-data}{%
+\section{Fit Models to your Data}\label{fit-models-to-your-data}}
+
+Fit models to your dataset considering the period Jan 1st 2005 to Dec
+31st 2009. First, we will consider an ARIMA with Fourier terms to
+account for multiple seasonalities in our data. For this specification,
+we assume that there are two sine and cosine terms during the weekly
+season and six sine and cosine terms during the annual season, after
+testing different combinations of K.
+
+\hypertarget{arima-with-fourier-terms-model}{%
+\subsection{ARIMA with Fourier Terms
+Model}\label{arima-with-fourier-terms-model}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# First Model: }
+\NormalTok{ARIMA\_Fourier\_fit }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_demand\_train, }
+                             \AttributeTok{seasonal=}\ConstantTok{FALSE}\NormalTok{, }
+                             \AttributeTok{lambda=}\DecValTok{0}\NormalTok{,}
+                             \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)) }\CommentTok{\# 2 weekly cycles, 6 annual cycles}
+\NormalTok{                             )}
+
+\CommentTok{\#Forecast with ARIMA fit}
+\CommentTok{\#also need to specify h for fourier terms}
+\NormalTok{ARIMA\_Fourier\_forecast }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(ARIMA\_Fourier\_fit,}
+                           \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train,}
+                                        \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}
+                                        \AttributeTok{h=}\DecValTok{365}\NormalTok{),}
+                           \AttributeTok{h=}\DecValTok{365}
+\NormalTok{                           ) }
+
+\CommentTok{\#Plot model + all observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ARIMA\_Fourier\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA\_FOURIER"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/ARIMA-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(ARIMA\_Fourier\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/ARIMA-2.pdf}
+
+\begin{verbatim}
+## 
+##  Ljung-Box test
+## 
+## data:  Residuals from Regression with ARIMA(1,1,1) errors
+## Q* = 516.07, df = 363, p-value = 2.108e-07
+## 
+## Model df: 2.   Total lags used: 365
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate Scores}
+\NormalTok{ARIMA\_four\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(ARIMA\_Fourier\_forecast}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{arima-with-fourier---training-data-interpretation}{%
+\subsubsection{ARIMA with Fourier - Training Data
+Interpretation}\label{arima-with-fourier---training-data-interpretation}}
+
+THE RMSE is 951.8972 and the MAPE is 23.426.
+
+\hypertarget{modeling-full-data---arima-with-fourier}{%
+\subsubsection{Modeling Full Data - ARIMA with
+Fourier}\label{modeling-full-data---arima-with-fourier}}
+
+After using the training dataset, re-running with the full dataset to
+forecast into 2011:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# First Model: }
+\NormalTok{ARIMA\_Fourier\_full }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_daily\_demand, }
+                             \AttributeTok{seasonal=}\ConstantTok{FALSE}\NormalTok{, }
+                             \AttributeTok{lambda=}\DecValTok{0}\NormalTok{,}
+                             \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{)) }\CommentTok{\# 2 weekly cycles, 2 annual cycles}
+\NormalTok{                             )}
+\NormalTok{n\_forecast }\OtherTok{=} \DecValTok{31}\SpecialCharTok{+}\DecValTok{28} \CommentTok{\# January and February {-} 59 days}
+
+\CommentTok{\#Forecast with ARIMA fit}
+\CommentTok{\#also need to specify h for fourier terms}
+\NormalTok{ARIMA\_Fourier\_FULLforecast }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(ARIMA\_Fourier\_full,}
+                           \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand,}
+                                        \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{2}\NormalTok{),}
+                                        \AttributeTok{h=}\NormalTok{n\_forecast),}
+                           \AttributeTok{h=}\NormalTok{n\_forecast}
+\NormalTok{                           ) }
+
+\CommentTok{\# Plot Forecast}
+\FunctionTok{autoplot}\NormalTok{(ARIMA\_Fourier\_FULLforecast) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-8-1.pdf}
+
+\hypertarget{export-model-results}{%
+\subsubsection{Export Model Results}\label{export-model-results}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ARIMA\_fourier\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{ARIMA\_Fourier\_FULLforecast}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(ARIMA\_fourier\_export, "./Submissions/ARIMA\_fourier\_v3.csv", row.names = FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{arima-with-exogenous-variables}{%
+\subsection{ARIMA with Exogenous
+Variables}\label{arima-with-exogenous-variables}}
+
+\hypertarget{both-temperature-and-humidity}{%
+\subsubsection{Both Temperature and
+Humidity}\label{both-temperature-and-humidity}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{tempandhumidity }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_demand\_train,}
+                  \AttributeTok{seasonal =} \ConstantTok{FALSE}\NormalTok{, }
+                  \AttributeTok{lambda =} \DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+               \AttributeTok{humidity=}\NormalTok{ts\_humid\_train,}
+               \AttributeTok{temperature=}\NormalTok{ts\_temp\_train))}
+
+
+
+\CommentTok{\#Forecast }
+\NormalTok{temphumidity\_forecast }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(tempandhumidity,}
+                           \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{),}
+                                \AttributeTok{humidity=}\NormalTok{ts\_humid\_test,}
+                                \AttributeTok{temperature=}\NormalTok{ts\_temp\_test),}
+                           \AttributeTok{h=}\DecValTok{365}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.forecast_ARIMA(tempandhumidity, xreg =
+## cbind(fourier(ts_demand_train, : xreg contains different column names from the
+## xreg used in training. Please check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Plot model + all observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temphumidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA with Exog Vars"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-10-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(temphumidity\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-10-2.pdf}
+
+\begin{verbatim}
+## 
+##  Ljung-Box test
+## 
+## data:  Residuals from Regression with ARIMA(0,1,4) errors
+## Q* = 340.63, df = 361, p-value = 0.7728
+## 
+## Model df: 4.   Total lags used: 365
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate Scores}
+\NormalTok{Exog1\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(temphumidity\_forecast}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{discussion-of-arima-with-2-exogenous-variables-temp-and-humidity}{%
+\paragraph{Discussion of ARIMA with 2 Exogenous Variables (Temp and
+Humidity)}\label{discussion-of-arima-with-2-exogenous-variables-temp-and-humidity}}
+
+This model did appear to fit the data well, with lower RMSE than
+previous model(s) (404.31) and much lower MAPE as well (9.35).
+
+\hypertarget{full-forecast-with-both-exogenous-variables}{%
+\paragraph{Full Forecast with both Exogenous
+Variables}\label{full-forecast-with-both-exogenous-variables}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fullexog\_arima }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_daily\_demand, }
+                             \AttributeTok{seasonal=}\ConstantTok{FALSE}\NormalTok{, }
+                             \AttributeTok{lambda=}\DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+                      \AttributeTok{temperature =}\NormalTok{ ts\_daily\_temp,}
+                      \AttributeTok{humidity =}\NormalTok{ ts\_daily\_humidity))}
+
+\CommentTok{\#Forecast Demand with Forecasted temperature and humidity}
+\NormalTok{temphumidity\_forecast\_FULL }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(tempandhumidity,}
+                           \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}
+                                          \AttributeTok{h=}\NormalTok{n\_forecast),}
+                                \AttributeTok{temperature =}\NormalTok{ ts\_temp\_for, }
+                                \AttributeTok{humidity =}\NormalTok{ ts\_humid\_for),}
+                           \AttributeTok{h=}\NormalTok{n\_forecast) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.forecast_ARIMA(tempandhumidity, xreg =
+## cbind(fourier(ts_demand_train, : xreg contains different column names from the
+## xreg used in training. Please check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{autoplot}\NormalTok{(temphumidity\_forecast\_FULL) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+\hypertarget{export-model-results-with-exogenous-variables}{%
+\paragraph{Export Model Results with Exogenous
+Variables}\label{export-model-results-with-exogenous-variables}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temphumidexog\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{temphumidity\_forecast\_FULL}\SpecialCharTok{$}\NormalTok{mean)}
+\FunctionTok{write.csv}\NormalTok{(temphumidexog\_export, }\StringTok{"./Submissions/exog\_humidtemp\_v3.csv"}\NormalTok{, }\AttributeTok{row.names =} \ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{just-temperature-exogenous-variable}{%
+\subsubsection{Just Temperature Exogenous
+Variable}\label{just-temperature-exogenous-variable}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temp\_only}\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_demand\_train,}
+                  \AttributeTok{seasonal =} \ConstantTok{FALSE}\NormalTok{, }
+                  \AttributeTok{lambda =} \DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{as.matrix}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+               \AttributeTok{temperature=}\NormalTok{ts\_temp\_train))}
+\CommentTok{\#summary(temp\_only)}
+
+\CommentTok{\#Forecast }
+\NormalTok{temponly\_forecast }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(temp\_only,}
+                           \AttributeTok{xreg=}\FunctionTok{as.matrix}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{),}
+                                \AttributeTok{temperature=}\NormalTok{ts\_temp\_test),}
+                           \AttributeTok{h=}\DecValTok{365}\NormalTok{) }
+
+\CommentTok{\#Plot model + all observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temponly\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA with Temperature"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-13-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(temponly\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-13-2.pdf}
+
+\begin{verbatim}
+## 
+##  Ljung-Box test
+## 
+## data:  Residuals from Regression with ARIMA(1,1,1) errors
+## Q* = 516.07, df = 363, p-value = 2.108e-07
+## 
+## Model df: 2.   Total lags used: 365
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(temponly\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME     RMSE      MAE       MPE     MAPE      MASE
+## Training set -3.704545 550.8154 392.4655 -1.165124 11.61502 0.5101672
+##                     ACF1
+## Training set -0.04133967
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Exog2\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(temponly\_forecast}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+
+\CommentTok{\# A higher RMSE than the temperature and humidity model. }
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{arima-with-temperature-exogenous-discussion}{%
+\paragraph{ARIMA with Temperature Exogenous
+Discussion}\label{arima-with-temperature-exogenous-discussion}}
+
+Although the plot appears to show that the lines match the observed data
+better, the MAPE and RMSE suggest that including temperature does not
+improve the model given that these values were higher than the RMSE/MAPE
+with both exogenous variables. Still, it is lower than other RMSE/MAPE
+values and so a full forecast can be performed.
+
+\hypertarget{full-dataset-humidity-exogenous-forecast}{%
+\paragraph{Full Dataset Humidity Exogenous
+Forecast}\label{full-dataset-humidity-exogenous-forecast}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{fulltemp\_arima }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_daily\_demand, }
+                             \AttributeTok{seasonal=}\ConstantTok{FALSE}\NormalTok{, }
+                             \AttributeTok{lambda=}\DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+               \AttributeTok{temperature =}\NormalTok{ ts\_daily\_temp))}
+
+\CommentTok{\#Forecast with \textquotesingle{}forecasted\textquotesingle{} temperature}
+\NormalTok{temp\_forecast\_FULL }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(fulltemp\_arima,}
+                           \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}
+                                          \AttributeTok{h=}\NormalTok{n\_forecast),}
+                                \AttributeTok{temperature =}\NormalTok{ ts\_temp\_for),}
+                           \AttributeTok{h=}\NormalTok{n\_forecast) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.forecast_ARIMA(fulltemp_arima, xreg =
+## cbind(fourier(ts_demand_train, : xreg contains different column names from the
+## xreg used in training. Please check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{autoplot}\NormalTok{(temp\_forecast\_FULL) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-14-1.pdf}
+
+\hypertarget{export-model-results-with-temperature-variables}{%
+\paragraph{Export Model Results with Temperature
+Variables}\label{export-model-results-with-temperature-variables}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{temp\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{temp\_forecast\_FULL}\SpecialCharTok{$}\NormalTok{mean)}
+\FunctionTok{write.csv}\NormalTok{(temp\_export, }\StringTok{"./Submissions/exog\_temp\_v3.csv"}\NormalTok{, }\AttributeTok{row.names =} \ConstantTok{FALSE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{just-humidity-exogenous-variable}{%
+\subsubsection{Just Humidity Exogenous
+Variable}\label{just-humidity-exogenous-variable}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{humidity }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_demand\_train,}
+                  \AttributeTok{seasonal =} \ConstantTok{FALSE}\NormalTok{, }
+                  \AttributeTok{lambda =} \DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+               \AttributeTok{humidity=}\NormalTok{ts\_humid\_train))}
+
+\CommentTok{\#Forecast }
+\NormalTok{humidity\_forecast }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(humidity,}
+                           \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)}
+\NormalTok{                                          ,}\AttributeTok{h=}\DecValTok{365} 
+\NormalTok{                                         ),}
+                                \AttributeTok{humidity=}\NormalTok{ts\_humid\_test),}
+                           \AttributeTok{h=}\DecValTok{365}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.forecast_ARIMA(humidity, xreg =
+## cbind(fourier(ts_demand_train, : xreg contains different column names from the
+## xreg used in training. Please check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Plot model + all observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(humidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA with Humidity Exogenous Variable"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-16-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(humidity\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                    ME     RMSE      MAE        MPE     MAPE      MASE      ACF1
+## Training set 29.06438 499.3725 374.5934 -0.9541236 11.26524 0.4869352 0.1156096
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Exog3\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(humidity\_forecast}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{arima-with-humidity-exogenous-discussion}{%
+\paragraph{ARIMA with Humidity Exogenous
+Discussion}\label{arima-with-humidity-exogenous-discussion}}
+
+The RMSE was 499.3725 and the MAPE was 11.26524.
+
+\hypertarget{full-dataset-humidity-exogenous-forecast-1}{%
+\paragraph{Full Dataset Humidity Exogenous
+Forecast}\label{full-dataset-humidity-exogenous-forecast-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{full\_humidity\_arima }\OtherTok{\textless{}{-}} \FunctionTok{auto.arima}\NormalTok{(ts\_daily\_demand, }
+                             \AttributeTok{seasonal=}\ConstantTok{FALSE}\NormalTok{, }
+                             \AttributeTok{lambda=}\DecValTok{0}\NormalTok{,}
+         \AttributeTok{xreg =} \FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+               \AttributeTok{humidity =}\NormalTok{ ts\_daily\_humidity))}
+
+\CommentTok{\#Forecast Demand with Forecasted humidity}
+\NormalTok{humidity\_forecast\_FULL }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(full\_humidity\_arima,}
+                           \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}
+                                          \AttributeTok{h=}\NormalTok{n\_forecast),}
+                                \AttributeTok{humidity =}\NormalTok{ ts\_humid\_for),}
+                           \AttributeTok{h=}\NormalTok{n\_forecast) }
+
+\FunctionTok{autoplot}\NormalTok{(humidity\_forecast\_FULL) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-17-1.pdf}
+
+\hypertarget{export-model-results-with-exogenous-variables-1}{%
+\paragraph{Export Model Results with Exogenous
+Variables}\label{export-model-results-with-exogenous-variables-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{humidity\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{humidity\_forecast\_FULL}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(humidity\_export, "./Submissions/exog\_humidity\_v3.csv", row.names = FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{tbats}{%
+\subsection{TBATS}\label{tbats}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# TBATS can take time to fit}
+\NormalTok{TBATS\_fit }\OtherTok{\textless{}{-}} \FunctionTok{tbats}\NormalTok{(ts\_demand\_train)}
+\NormalTok{TBATS\_for }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(TBATS\_fit, }\AttributeTok{h=}\DecValTok{365}\NormalTok{)}
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(TBATS\_for, }\AttributeTok{series=}\StringTok{"TBATS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/TBATS-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(TBATS\_for)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/TBATS-2.pdf}
+
+\begin{verbatim}
+## 
+##  Ljung-Box test
+## 
+## data:  Residuals from TBATS(0, {0,3}, -, {<7,2>, <365.25,2>})
+## Q* = 351, df = 356, p-value = 0.5649
+## 
+## Model df: 9.   Total lags used: 365
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate Scores}
+\NormalTok{TBATS\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(TBATS\_for}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{tbats-interpretation}{%
+\subsubsection{TBATS Interpretation}\label{tbats-interpretation}}
+
+THE RMSE is 912.102 and the MAPE is 18.35. This model performed better
+than the ARIMA with fourier.
+
+\hypertarget{modeling-full-data---tbats}{%
+\subsubsection{Modeling Full Data -
+TBATS}\label{modeling-full-data---tbats}}
+
+After using the training dataset, re-running with the full dataset to
+forecast into 2011:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# First Model: }
+\NormalTok{TBATS\_fit\_full }\OtherTok{\textless{}{-}} \FunctionTok{tbats}\NormalTok{(ts\_daily\_demand)}
+\NormalTok{TBATS\_for\_full }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(TBATS\_fit\_full, }\AttributeTok{h=}\NormalTok{n\_forecast)}
+
+\FunctionTok{autoplot}\NormalTok{(TBATS\_for\_full) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Demand"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-19-1.pdf}
+
+\hypertarget{export-model-results---tbats}{%
+\subsubsection{Export Model Results -
+TBATs}\label{export-model-results---tbats}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{TBATS\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{TBATS\_for\_full}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(TBATS\_export, "./Submissions/TBATS\_v1.csv", row.names = FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{stl-ets}{%
+\subsection{STL + ETS}\label{stl-ets}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast STL + ETS model to data}
+\NormalTok{ETS\_fit }\OtherTok{\textless{}{-}}  \FunctionTok{stlf}\NormalTok{(ts\_demand\_train,}\AttributeTok{h=}\DecValTok{365}\NormalTok{)}
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ETS\_fit, }\AttributeTok{series=}\StringTok{"STL + ETS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Active Power"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-21-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot Residuals}
+\FunctionTok{checkresiduals}\NormalTok{(ETS\_fit)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in checkresiduals(ETS_fit): The fitted degrees of freedom is based on
+## the model used for the seasonally adjusted data.
+\end{verbatim}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-21-2.pdf}
+
+\begin{verbatim}
+## 
+##  Ljung-Box test
+## 
+## data:  Residuals from STL +  ETS(A,N,N)
+## Q* = 1328.1, df = 363, p-value < 2.2e-16
+## 
+## Model df: 2.   Total lags used: 365
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate Scores}
+\NormalTok{ETS\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(ETS\_fit}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{stl-ets-interpretation}{%
+\subsubsection{STL + ETS Interpretation}\label{stl-ets-interpretation}}
+
+The RMSE is 1231.962 and the MAPE is 33.30224, both higher than the
+original ARIMA\_Fourier.
+
+\hypertarget{full-data-modeling---stlets}{%
+\subsubsection{Full Data Modeling -
+STL+ETS}\label{full-data-modeling---stlets}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast STL + ETS model to data}
+\NormalTok{ETS\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{stlf}\NormalTok{(ts\_daily\_demand,}\AttributeTok{h=}\NormalTok{n\_forecast)}
+
+\CommentTok{\#Plot foresting results}
+\FunctionTok{autoplot}\NormalTok{(ETS\_fit) }\SpecialCharTok{+} \FunctionTok{ylab}\NormalTok{(}\StringTok{"Active Power"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-22-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ETS\_fit\_full, }\AttributeTok{series=}\StringTok{"STL + ETS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Active Power"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-22-2.pdf}
+
+\hypertarget{export-model-results---ets}{%
+\subsubsection{Export Model Results -
+ETS}\label{export-model-results---ets}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{ETS\_STL\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{ETS\_fit\_full}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(ETS\_STL\_export, file="./Submissions/ETS\_STL\_v1.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-1}{%
+\subsection{Neural Network Model 1}\label{neural-network-model-1}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{0}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\FloatTok{3.5}\NormalTok{,}\DecValTok{2}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\FloatTok{3.5}\NormalTok{,}\DecValTok{2}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-24-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(NN\_for)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in modeldf.default(object): Could not find appropriate degrees of
+## freedom for this model.
+\end{verbatim}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-24-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE     MAE      MPE     MAPE      ACF1 Theil's U
+## Test set 431.4661 1006.141 708.778 6.112205 16.54868 0.8094762  1.479326
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn-interpretation}{%
+\subsubsection{NN Interpretation}\label{nn-interpretation}}
+
+THE RMSE is 997.6037 and the MAPE is 16.52452. The MAPE appears to be
+the lowest among models, but RMSE is in the middle of the range.
+
+\hypertarget{neural-network-output-submission-1.5}{%
+\subsubsection{Neural Network Output Submission
+1.5}\label{neural-network-output-submission-1.5}}
+
+I called this 1.5 because our initial neural network output v1 was
+accidentally the fitted data of an STL-ETS model. So I just tweaked it
+to make sure it was exporting the right model! The original code is at
+the bottom where I am saving code I don't want to delete but just want
+to streamline the RMD.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{0}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\FloatTok{3.5}\NormalTok{,}\DecValTok{2}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\FloatTok{3.5}\NormalTok{,}\DecValTok{2}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-25-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME     RMSE      MAE       MPE     MAPE      MASE      ACF1
+## Training set 0.0341212 501.2106 366.0539 -1.997427 10.84252 0.4625356 0.1696721
+\end{verbatim}
+
+\hypertarget{export-model-results---nn}{%
+\subsubsection{Export Model Results -
+NN}\label{export-model-results---nn}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN\_export15 }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN\_export15, file="./Submissions/NN\_v1p5.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-2}{%
+\subsection{Neural Network Model 2}\label{neural-network-model-2}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit2 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{0}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for2 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit2, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for2, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-27-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot residuals}
+\FunctionTok{checkresiduals}\NormalTok{(NN\_for2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in modeldf.default(object): Could not find appropriate degrees of
+## freedom for this model.
+\end{verbatim}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-27-2.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for2}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE      MAE      MPE     MAPE      ACF1 Theil's U
+## Test set 465.1798 1088.454 752.2438 7.194153 17.42636 0.8259367  1.598711
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN2\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for2}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn2-interpretation}{%
+\subsubsection{NN2 Interpretation}\label{nn2-interpretation}}
+
+THE RMSE is 1088.129 and the MAPE is 17.39624 The MAPE is higher than
+the other neural network model, but still relatively low.
+
+\hypertarget{full-data-modeling---neural-network-2}{%
+\subsubsection{Full Data Modeling - Neural Network
+2}\label{full-data-modeling---neural-network-2}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN2\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{0}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for2 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN2\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for2, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-28-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for2)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                      ME     RMSE      MAE       MPE     MAPE      MASE
+## Training set -0.5824591 440.6588 318.5935 -1.665194 9.440918 0.4025661
+##                    ACF1
+## Training set 0.03136639
+\end{verbatim}
+
+\hypertarget{export-model-results---nn2}{%
+\subsubsection{Export Model Results -
+NN2}\label{export-model-results---nn2}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN2\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for2}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN2\_export, file="./Submissions/NN\_v2.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-3}{%
+\subsection{Neural Network Model 3}\label{neural-network-model-3}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit3 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for3 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit3, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for3, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-30-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for3}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE      MAE      MPE     MAPE      ACF1 Theil's U
+## Test set 483.5206 1130.459 784.9238 6.775466 18.28378 0.8366979  1.617213
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN3\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for3}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn3-interpretation}{%
+\subsubsection{NN3 Interpretation}\label{nn3-interpretation}}
+
+THE RMSE is 1158.751 and the MAPE is 18.84508.
+
+\hypertarget{full-data-modeling---neural-network-3}{%
+\subsubsection{Full Data Modeling - Neural Network
+3}\label{full-data-modeling---neural-network-3}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN3\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for3 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN3\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for3, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-31-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for3)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME     RMSE      MAE       MPE     MAPE      MASE      ACF1
+## Training set -1.517194 437.5483 318.8369 -1.727338 9.398823 0.4028736 0.1349596
+\end{verbatim}
+
+\hypertarget{export-model-results---nn3}{%
+\subsubsection{Export Model Results -
+NN3}\label{export-model-results---nn3}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN3\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for3}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN3\_export, file="./Submissions/NN\_v3.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-4}{%
+\subsection{Neural Network Model 4}\label{neural-network-model-4}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit4 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for4 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit4, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for4, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-33-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_for4}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE      MAE     MPE     MAPE      ACF1 Theil's U
+## Test set 405.5236 1089.385 769.6434 4.89637 18.39246 0.8295133  1.627366
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN4\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for4}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn5-interpretation}{%
+\subsubsection{NN5 Interpretation}\label{nn5-interpretation}}
+
+THE RMSE is 1119.653 and the MAPE is 19.45936.
+
+\hypertarget{full-data-modeling---neural-network-4}{%
+\subsubsection{Full Data Modeling - Neural Network
+4}\label{full-data-modeling---neural-network-4}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN4\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for4 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN4\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for4, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-34-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for4)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME     RMSE      MAE       MPE     MAPE      MASE      ACF1
+## Training set -1.499852 409.3343 298.8612 -1.606948 8.663371 0.3776328 0.1424979
+\end{verbatim}
+
+\hypertarget{export-model-results---nn4}{%
+\subsubsection{Export Model Results -
+NN4}\label{export-model-results---nn4}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN4\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for4}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN4\_export, file="./Submissions/NN\_v4.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-5}{%
+\subsection{Neural Network Model 5}\label{neural-network-model-5}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit5 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for5 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit5, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for5, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-36-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for5}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE      MAE     MPE     MAPE      ACF1 Theil's U
+## Test set 469.5734 1124.297 781.4508 6.69199 18.20015 0.8389746  1.626201
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN5\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for5}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn5-interpretation-1}{%
+\subsubsection{NN5 Interpretation}\label{nn5-interpretation-1}}
+
+THE RMSE is 1095.736 and the MAPE is 18.15347.
+
+\hypertarget{full-data-modeling---neural-network-5}{%
+\subsubsection{Full Data Modeling - Neural Network
+5}\label{full-data-modeling---neural-network-5}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN5\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{1}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for5 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN5\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for5, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-37-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for5)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME     RMSE      MAE       MPE     MAPE      MASE
+## Training set -2.332657 420.6291 303.8214 -1.628111 8.941827 0.3839003
+##                     ACF1
+## Training set 0.005628066
+\end{verbatim}
+
+\hypertarget{export-model-results---nn5}{%
+\subsubsection{Export Model Results -
+NN5}\label{export-model-results---nn5}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN5\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for5}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN5\_export, file="./Submissions/NN\_v5.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-6}{%
+\subsection{Neural Network Model 6}\label{neural-network-model-6}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit6 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for6 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit6, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{))}
+
+
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for6, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-39-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate Scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for6}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##               ME     RMSE      MAE      MPE     MAPE      ACF1 Theil's U
+## Test set 347.882 1083.441 753.2763 3.488614 18.20663 0.8321215  1.655749
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN6\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for6}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn6-interpretation}{%
+\subsubsection{NN6 Interpretation}\label{nn6-interpretation}}
+
+THE RMSE is 1055.742 and the MAPE is 17.88271. Across all NN models, V6
+(p=2, P=2) scored the best on Kaggle, but V1 (p=2,P=0) scores the best
+in terms of RMSE and MAPE.
+
+\hypertarget{full-data-modeling---neural-network-6}{%
+\subsubsection{Full Data Modeling - Neural Network
+6}\label{full-data-modeling---neural-network-6}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN6\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }\AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)))}
+
+\NormalTok{NN\_full\_for6 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN6\_fit\_full, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{59}\NormalTok{))}
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for6, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-40-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for6)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                    ME     RMSE      MAE       MPE     MAPE      MASE       ACF1
+## Training set -1.01759 390.5204 282.9265 -1.470333 8.205272 0.3574982 0.02071284
+\end{verbatim}
+
+\hypertarget{export-model-results---nn6}{%
+\subsubsection{Export Model Results -
+NN6}\label{export-model-results---nn6}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN6\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for6}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN6\_export, file="./Submissions/NN\_v6.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{neural-network-model-7---include-exogenous-variables}{%
+\subsection{Neural Network Model 7 - Include Exogenous
+Variables}\label{neural-network-model-7---include-exogenous-variables}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Fit Model on Training Data}
+\NormalTok{NN\_fit7 }\OtherTok{\textless{}{-}} \FunctionTok{nnetar}\NormalTok{(ts\_demand\_train,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+                            \AttributeTok{humidity=}\NormalTok{ts\_humid\_train,}
+                            \AttributeTok{temperature=}\NormalTok{ts\_temp\_train))}
+
+\CommentTok{\# Forecast on Testing Data}
+\NormalTok{NN\_for7 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN\_fit7, }
+                   \AttributeTok{h=}\DecValTok{365}\NormalTok{,}
+                   \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}\AttributeTok{h=}\DecValTok{365}\NormalTok{),}
+                                \AttributeTok{humidity=}\NormalTok{ts\_humid\_test,}
+                                \AttributeTok{temperature=}\NormalTok{ts\_temp\_test))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.nnetar(NN_fit7, h = 365, xreg =
+## cbind(fourier(ts_demand_train, : xreg contains different column names from the
+## xreg used in training. Please check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Plot model + observed data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for7, }\AttributeTok{series=}\StringTok{"Neural Network + Exog"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-42-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Calculate scores}
+\FunctionTok{accuracy}\NormalTok{(NN\_for7}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                ME     RMSE      MAE       MPE     MAPE      ACF1 Theil's U
+## Test set 32.72946 606.2326 453.7248 -1.290776 12.06798 0.4472378  1.093843
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NNexog\_scores }\OtherTok{\textless{}{-}} \FunctionTok{accuracy}\NormalTok{(NN\_for7}\SpecialCharTok{$}\NormalTok{mean, ts\_demand\_test)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{nn7-interpretation}{%
+\subsubsection{NN7 Interpretation}\label{nn7-interpretation}}
+
+THE RMSE is 599.2527 and the MAPE is 12.05602.
+
+\hypertarget{full-data-modeling---neural-network-7}{%
+\subsubsection{Full Data Modeling - Neural Network
+7}\label{full-data-modeling---neural-network-7}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Fit and forecast full neural network}
+\NormalTok{NN7\_fit\_full }\OtherTok{\textless{}{-}}  \FunctionTok{nnetar}\NormalTok{(ts\_daily\_demand,}
+                 \AttributeTok{p=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{P=}\DecValTok{2}\NormalTok{,}
+                 \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_daily\_demand, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{)),}
+                            \AttributeTok{temperature =}\NormalTok{ ts\_daily\_temp,}
+                            \AttributeTok{humidity =}\NormalTok{ ts\_daily\_humidity))}
+
+\NormalTok{NN\_full\_for7 }\OtherTok{\textless{}{-}} \FunctionTok{forecast}\NormalTok{(NN7\_fit\_full, }
+                   \AttributeTok{xreg=}\FunctionTok{cbind}\NormalTok{(}\FunctionTok{fourier}\NormalTok{(ts\_demand\_train, }
+                                          \AttributeTok{K=}\FunctionTok{c}\NormalTok{(}\DecValTok{2}\NormalTok{,}\DecValTok{6}\NormalTok{),}
+                                          \AttributeTok{h=}\NormalTok{n\_forecast),}
+                                \AttributeTok{temperature =}\NormalTok{ ts\_temp\_for, }
+                                \AttributeTok{humidity =}\NormalTok{ ts\_humid\_for),}
+                   \AttributeTok{h=}\NormalTok{n\_forecast)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Warning in forecast.nnetar(NN7_fit_full, xreg = cbind(fourier(ts_demand_train,
+## : xreg contains different column names from the xreg used in training. Please
+## check that the regressors are in the same order.
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\#Plot foresting }
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_full\_for7, }\AttributeTok{series=}\StringTok{"Neural Network"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/unnamed-chunk-43-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{accuracy}\NormalTok{(NN\_full\_for7)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##                     ME    RMSE      MAE        MPE     MAPE      MASE
+## Training set 0.4495271 205.995 155.1035 -0.4358861 4.518993 0.1959845
+##                    ACF1
+## Training set 0.03847997
+\end{verbatim}
+
+\hypertarget{export-model-results---nn7}{%
+\subsubsection{Export Model Results -
+NN7}\label{export-model-results---nn7}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NN7\_export }\OtherTok{\textless{}{-}} \FunctionTok{data.frame}\NormalTok{(}\AttributeTok{date=}\NormalTok{forecast\_dates, }\AttributeTok{load=}\NormalTok{NN\_full\_for7}\SpecialCharTok{$}\NormalTok{mean)}
+\CommentTok{\# write.csv(NN7\_export, file="./Submissions/NN\_v7.csv", row.names=FALSE)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{compare-all-models}{%
+\subsection{Compare All Models}\label{compare-all-models}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{scores }\OtherTok{\textless{}{-}} \FunctionTok{as.data.frame}\NormalTok{(}\FunctionTok{rbind}\NormalTok{(ARIMA\_four\_scores, Exog1\_scores, Exog2\_scores, Exog3\_scores, }
+\NormalTok{                              TBATS\_scores, ETS\_scores, NN\_scores, NN6\_scores, NNexog\_scores))}
+
+\FunctionTok{row.names}\NormalTok{(scores) }\OtherTok{\textless{}{-}} \FunctionTok{c}\NormalTok{(}\StringTok{"ARIMA+Fourier"}\NormalTok{, }\StringTok{"ARIMA+Fourier+Temp+Humid"}\NormalTok{, }\StringTok{"ARIMA+Fourier+Temp"}\NormalTok{, }
+                       \StringTok{"ARIMA+Fourier+Humid"}\NormalTok{, }\StringTok{"TBATS"}\NormalTok{, }\StringTok{"ETS"}\NormalTok{, }\StringTok{"NN(p=2,P=2)"}\NormalTok{, }\StringTok{"NN(p=2,P=0)"}\NormalTok{, }\StringTok{"NN+Temp+Humid"}\NormalTok{)}
+
+\CommentTok{\# Which model has the best RMSE?}
+\NormalTok{best\_model\_index }\OtherTok{\textless{}{-}} \FunctionTok{which.min}\NormalTok{(scores[,}\StringTok{"RMSE"}\NormalTok{])}
+\FunctionTok{cat}\NormalTok{(}\StringTok{"The best model by RMSE is:"}\NormalTok{, }\FunctionTok{row.names}\NormalTok{(scores[best\_model\_index,]))  }
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## The best model by RMSE is: NN+Temp+Humid
+\end{verbatim}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Table of Scores}
+\FunctionTok{kbl}\NormalTok{(scores,}
+    \AttributeTok{caption =} \StringTok{"Forecast Accuracy for Daily Demand"}\NormalTok{,}
+    \AttributeTok{digits =} \FunctionTok{array}\NormalTok{(}\DecValTok{9}\NormalTok{,}\FunctionTok{ncol}\NormalTok{(scores)),}
+    \AttributeTok{table.attr =} \StringTok{"style = }\SpecialCharTok{\textbackslash{}"}\StringTok{color: black;}\SpecialCharTok{\textbackslash{}"}\StringTok{"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{kable\_styling}\NormalTok{(}\AttributeTok{full\_width =} \ConstantTok{FALSE}\NormalTok{, }\AttributeTok{position =} \StringTok{"center"}\NormalTok{, }\AttributeTok{latex\_options =} \StringTok{"hold\_position"}\NormalTok{) }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{kable\_styling}\NormalTok{() }\SpecialCharTok{\%\textgreater{}\%}
+  \FunctionTok{row\_spec}\NormalTok{(}\AttributeTok{row=}\FunctionTok{which.min}\NormalTok{(scores[,}\StringTok{"RMSE"}\NormalTok{]), }\AttributeTok{bold =}\NormalTok{ T, }\AttributeTok{color =} \StringTok{"white"}\NormalTok{, }\AttributeTok{background =} \StringTok{"cornflowerblue"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{table}[!h]
+
+\caption{\label{tab:Table}Forecast Accuracy for Daily Demand}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r|r}
+\hline
+  & ME & RMSE & MAE & MPE & MAPE & ACF1 & Theil's U\\
+\hline
+ARIMA+Fourier & -312.78882 & 951.8972 & 781.3527 & -15.314591 & 23.42617 & 0.8198729 & 1.953180\\
+\hline
+ARIMA+Fourier+Temp+Humid & 397.84870 & 845.9779 & 634.9686 & 6.296356 & 15.55581 & 0.7436483 & 1.371800\\
+\hline
+ARIMA+Fourier+Temp & -312.78882 & 951.8972 & 781.3527 & -15.314591 & 23.42617 & 0.8198729 & 1.953180\\
+\hline
+ARIMA+Fourier+Humid & -444.13169 & 956.6825 & 809.2133 & -18.618364 & 24.95027 & 0.7893846 & 2.076586\\
+\hline
+TBATS & 116.33159 & 912.1020 & 687.7844 & -3.247290 & 18.35819 & 0.8239929 & 1.549869\\
+\hline
+ETS & -667.44075 & 1231.9616 & 1041.9206 & -27.250777 & 33.30224 & 0.7961974 & 2.810276\\
+\hline
+NN(p=2,P=2) & 431.46608 & 1006.1408 & 708.7780 & 6.112205 & 16.54868 & 0.8094762 & 1.479326\\
+\hline
+NN(p=2,P=0) & 347.88197 & 1083.4410 & 753.2763 & 3.488614 & 18.20663 & 0.8321215 & 1.655749\\
+\hline
+\cellcolor{cornflowerblue}{\textcolor{white}{\textbf{NN+Temp+Humid}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{32.72946}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{606.2326}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{453.7248}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{-1.290776}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{12.06798}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{0.4472378}}} & \cellcolor{cornflowerblue}{\textcolor{white}{\textbf{1.093843}}}\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot Forecasting Results {-} All Data}
+\FunctionTok{autoplot}\NormalTok{(ts\_daily\_demand) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ARIMA\_Fourier\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + FOURIER"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temphumidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Temp + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temponly\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Temp"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(humidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(TBATS\_for, }\AttributeTok{series=}\StringTok{"TBATS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ETS\_fit, }\AttributeTok{series=}\StringTok{"STL + ETS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for, }\AttributeTok{series=}\StringTok{"NN(p=2,P=2)"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for6, }\AttributeTok{series=}\StringTok{"NN(p=2,P=0)"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for7, }\AttributeTok{series=}\StringTok{"NN + Temp + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_bw}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/Visuals-1.pdf}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\CommentTok{\# Plot Forecasting Results {-} Testing Data Only}
+\FunctionTok{autoplot}\NormalTok{(ts\_demand\_test) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ARIMA\_Fourier\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + FOURIER"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temphumidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Temp + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(temponly\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Temp"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(humidity\_forecast, }\AttributeTok{series=}\StringTok{"ARIMA + Fourier + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(TBATS\_for, }\AttributeTok{series=}\StringTok{"TBATS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(ETS\_fit, }\AttributeTok{series=}\StringTok{"STL + ETS"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for, }\AttributeTok{series=}\StringTok{"NN(p=2,P=2)"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for6, }\AttributeTok{series=}\StringTok{"NN(p=2,P=0)"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{autolayer}\NormalTok{(NN\_for7, }\AttributeTok{series=}\StringTok{"NN + Temp + Humidity"}\NormalTok{,}\AttributeTok{PI=}\ConstantTok{FALSE}\NormalTok{)}\SpecialCharTok{+}
+  \FunctionTok{ylab}\NormalTok{(}\StringTok{"Electricity Demand"}\NormalTok{) }\SpecialCharTok{+}
+  \FunctionTok{theme\_bw}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\includegraphics{OsheaBurley_Competition_Final_files/figure-latex/Visuals-2.pdf}
+When forecasting on the testing data for 2010, the best model was a
+neural network with temperature and humidity included. The second-best
+model in terms of RMSE and MAPE was the ARIMA with exogenous variables.
+The exogenous variables seemed to really improve the models when
+forecasting on the testing data, which uses observed values of
+temperature and humidity. However, these models did not perform as well
+in the Kaggle competition. This is likely due to the simple methods we
+used to project temperature and humidity values in 2011. In the Kaggle
+competition, the neural network models without exogenous variables
+performed the best. After the models with exogenous variables, the two
+NN models without exogenous variables had the next lowest RMSE and MAPE
+when evaluating on the testing data.
+
+\end{document}
