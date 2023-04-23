@@ -6,12 +6,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-## Update from Maggie (notes to self and to group!): 
-I made 3 new models with exogenous variables but for the future forecasting, I just used temperature and humidity values from the jan/feb of the year prior. A really complicated but maybe better model could forecast humidity and temperature using an ARIMA and then put those forecast values into the ARIMA for demand with exogenous variables. However, I think this could be a lot of work. Instead, we could do a few more exogenous variable ones but use different years for the forecast (instead of the temp/humidity for jan and feb 2010 we use 2009 for eaxample) *or* we could get the average temperature and humidity for each day and use that as the forecasted values. That may be the most fruitful but still less complicated than forecasting the values which is good! -- Not saying you have to do this, more making note for myself to remember my thought process! 
-
-Next steps for either of us might include adding any other models that we want (right now we have 9 uploaded to the website), and then tidying up the code. Tidying the code I think will just involve making that table at the end with the final accuracy scores and ideally adding: message=FALSE, warning=FALSE to all code chunks (after r in {r}). Lastly, we can go through the notes in the code chunks that we left for each other and just keep those that make sense/explain our process. 
-
-
 ## Load Libraries
 
 ```{r message = FALSE, warning=FALSE}
@@ -103,7 +97,6 @@ rm(cor_mat, daily_all, daily_forcor, daily_forcor_mat, submission_template)
   
 ```
 
-
 ## Create a Time Series Object
 
 #### Instructions: 
@@ -119,12 +112,13 @@ ts_daily_demand <- msts(daily_demand$daily_average,
                            seasonal.periods =c(7, 365.25),
                            start=c(2005,01,01))
 
-ts_daily_humidity <- msts(daily_humidity$rh_ws1, 
+ts_daily_humidity <- msts(daily_humidity$rh_ws20, 
                            seasonal.periods =c(7,365.25),
                            start=c(2005,01,01))
-ts_daily_temp <- msts(daily_temp$avg_t_ws1, 
+ts_daily_temp <- msts(daily_temp$avg_t_ws23, 
                            seasonal.periods =c(7,365.25),
                            start=c(2005,01,01))
+# Using temperature and humidity vars with highest correlation to demand
 
 # **NOTE**: Would be nice to add monthly, but I don't see this used in the M10 code or the link referenced there. I'm guessing probably because months can't be expressed precisely in # of days
 ## I made monthly data! Though because there are so few years, when you reduce to monthly data there are so few observations which makes me think it is better to model with daily data? Open to your thoughts though!
@@ -201,6 +195,71 @@ Pacf(ts_remainder,lag.max=40, main="PACF")
 
 ```
 
+## Forecasting Exogenous Variables for Full Data Forecast
+In order to forecast using exogenous variables, you first have to forecast those exogenous variables. To start, rather than forecasting temperature and humidity, this forecast will just use the temperature values from the previous year during that time period. 
+
+### Use last year's values
+```{r}
+#In order to forecast using exogenous variables you first have to forecast those exogenous variables. 
+
+forecast_dailytemp <- daily_temp%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
+forecast_dailyhumid <- daily_humidity%>%
+  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
+
+
+ts_temp_forfore <- msts(forecast_dailytemp$avg_t_ws1,
+                        seasonal.periods =c(7,365.25),
+                        start=c(2011,01,01))
+
+ts_humid_forfore <- msts(forecast_dailyhumid$rh_ws1,
+                         seasonal.periods =c(7,365.25),
+                         start=c(2011,01,01))
+
+```
+
+### Use average daily values
+```{r}
+# Use average daily values as forecast for temperature and humidity
+temp_for <- daily_temp %>%
+  select(date, avg_t_ws23) %>%
+  mutate(doy = yday(date)) %>%
+  group_by(doy) %>%
+  summarise(avg_temp = mean(avg_t_ws23)) %>%
+  ungroup() %>%
+  filter(doy<=59)
+
+ts_temp_for <- msts(temp_for$avg_temp,
+                    seasonal.periods =c(7,365.25),
+                    start=c(2011,01,01))
+
+humid_for <- daily_humidity %>%
+  select(date, rh_ws20) %>%
+  mutate(doy = yday(date)) %>%
+  group_by(doy) %>%
+  summarise(avg_humid = mean(rh_ws20)) %>%
+  ungroup() %>%
+  filter(doy<=59)
+
+ts_humid_for <- msts(temp_for$avg_temp,
+                    seasonal.periods =c(7,365.25),
+                    start=c(2011,01,01))
+
+# Temperature
+autoplot(ts_temp_train, series="Train") +
+  autolayer(ts_temp_test, series="Test") +
+  autolayer(ts_temp_forfore, series="Forecast1") +
+  autolayer(ts_temp_for, series="Forecast 2") +
+  ylab("Temperature")
+
+# Humidity
+autoplot(ts_humid_train, series="Train") +
+  autolayer(ts_humid_test, series="Test") +
+  autolayer(ts_humid_forfore, series="Forecast1") +
+  autolayer(ts_humid_for, series="Forecast 2") +
+  ylab("Humidity")
+
+```
 
 # Fit Models to your Data
 
@@ -325,28 +384,11 @@ fullexog_arima <- auto.arima(ts_daily_demand,
                              lambda=0,
          xreg = cbind(fourier(ts_daily_demand, 
                                           K=c(2,6)),
-               temperature = ts_daily_temp, 
-               humidity = ts_daily_humidity))
+                      temperature = ts_daily_temp,
+                      humidity = ts_daily_humidity))
 ```
 
-#### Forecasting Exogenous Variables for Full Data Forecast
-In order to forecast using exogenous variables, you first have to forecast those exogenous variables. To start, rather than forecasting temperature and humidity, this forecast will just use the temperature values from the previous year during that time period. 
-```{r}
-#In order to forecast using exogenous variables you first have to forecast those exogenous variables. 
 
-forecast_dailytemp <- daily_temp%>%
-  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
-forecast_dailyhumid <- daily_humidity%>%
-  filter(date > as.Date('2009-12-31') & date < ('2010-2-28'))
-
-
-ts_temp_forfore <- msts(forecast_dailytemp$avg_t_ws1, 
-                           seasonal.periods =c(7,365.25))
-
-ts_humid_forfore <- msts(forecast_dailyhumid$rh_ws1, 
-                           seasonal.periods =c(7,365.25))
-
-```
 
 ```{r warning=FALSE, message=FALSE}
 #Forecast Demand with Forecasted temperature and humidity
@@ -354,8 +396,8 @@ temphumidity_forecast_FULL <- forecast(tempandhumidity,
                            xreg=cbind(fourier(ts_demand_train, 
                                           K=c(2,6),
                                           h=n_forecast),
-                                temperature = ts_temp_forfore, 
-                                humidity = ts_humid_forfore),
+                                temperature = ts_temp_for, 
+                                humidity = ts_humid_for),
                            h=n_forecast) 
 
 autoplot(temphumidity_forecast_FULL) + ylab("Demand")
@@ -365,7 +407,7 @@ accuracy(temphumidity_forecast_FULL)
 #### Export Model Results with Exogenous Variables
 ```{r}
 temphumidexog_export <- data.frame(date=forecast_dates, load=temphumidity_forecast_FULL$mean)
-write.csv(temphumidexog_export, "./Submissions/exog_humidtemp.csv", row.names = FALSE)
+write.csv(temphumidexog_export, "./Submissions/exog_humidtemp_v3.csv", row.names = FALSE)
 ```
 
 ### Just Temperature Exogenous Variable
@@ -412,7 +454,7 @@ temp_forecast_FULL <- forecast(fulltemp_arima,
                            xreg=cbind(fourier(ts_demand_train, 
                                           K=c(2,6),
                                           h=n_forecast),
-                                temperature = ts_temp_forfore),
+                                temperature = ts_temp_for),
                            h=n_forecast) 
 
 autoplot(temp_forecast_FULL) + ylab("Demand")
@@ -422,7 +464,7 @@ accuracy(temp_forecast_FULL)
 #### Export Model Results with Temperature Variables
 ```{r}
 temp_export <- data.frame(date=forecast_dates, load=temp_forecast_FULL$mean)
-write.csv(temp_export, "./Submissions/exog_temp.csv", row.names = FALSE)
+write.csv(temp_export, "./Submissions/exog_temp_v3.csv", row.names = FALSE)
 ```
 
 ### Just Humidity Exogenous Variable
@@ -468,7 +510,7 @@ humidity_forecast_FULL <- forecast(full_humidity_arima,
                            xreg=cbind(fourier(ts_demand_train, 
                                           K=c(2,6),
                                           h=n_forecast),
-                                humidity = ts_humid_forfore),
+                                humidity = ts_humid_for),
                            h=n_forecast) 
 
 autoplot(humidity_forecast_FULL) + ylab("Demand")
@@ -478,68 +520,8 @@ accuracy(humidity_forecast_FULL)
 #### Export Model Results with Exogenous Variables
 ```{r}
 humidity_export <- data.frame(date=forecast_dates, load=humidity_forecast_FULL$mean)
-write.csv(humidity_export, "./Submissions/exog_humidity.csv", row.names = FALSE)
+write.csv(humidity_export, "./Submissions/exog_humidity_v3.csv", row.names = FALSE)
 ```
-
-
-
-## ARIMA with Independent Variables
-Just trying out random things here, but it looks bad, so not planning to upload it to Kaggle! We can remove before turning in the final RMD!
-``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
-# Set up regressors: 
-regressors <- data.frame(date = daily_demand$date, temp = daily_temp$avg_t_ws23, humidity = daily_humidity$rh_ws20)
-
-regressors <- regressors %>%
-  mutate(dow = wday(date),
-         doy = yday(date)) %>%
-  select(-c(date, dow, doy, humidity)) 
-# , temp, humidity
-
-
-X <- data.matrix(regressors)
-X_train <- X[1:1826,]
-X_test <- X[1827:2191,]
-
-# First Model: 
-ARIMA_reg_fit <- auto.arima(ts_demand_train, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=c(fourier(),X_train) # 2 weekly cycles, 6 annual cycles
-                            # Luana - can combine the fourier coefficients and exogenous variables as a list here!
-
-#Forecast with ARIMA fit
-#also need to specify h for fourier terms
-ARIMA_reg_forecast <- forecast(ARIMA_reg_fit,
-                           xreg=X_test,
-                           h=365
-                           ) 
-
-#Plot forecasting results
-autoplot(ARIMA_reg_forecast) + ylab("Demand")
-
-#Plot model + all observed data
-autoplot(ts_daily_demand) +
-  autolayer(ARIMA_reg_forecast, series="ARIMA_Regressors",PI=FALSE) +
-  ylab("Demand")
-
-# Plot model and observed data during 2010
-plot(ARIMA_reg_forecast$mean,
-     xlab = "Date",
-     ylab = "Demand",
-     ylim = c(1000, 10000))
-lines(ts_demand_test,
-      type = "l",
-      col = 4,
-      lwd = 2)
-legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
-       col=c("black",4), lwd=3, cex=0.8)
-  # It's just terrible!
-
-ARIMA_reg_scores <- accuracy(ARIMA_reg_forecast$mean, ts_demand_test)
-checkresiduals(ARIMA_reg_forecast)
-
-```
-
 
 ## TBATS Model 1
 
@@ -780,7 +762,6 @@ NN2_export <- data.frame(date=forecast_dates, load=NN_full_for2$mean)
 write.csv(NN2_export, file="./Submissions/NN_v2.csv", row.names=FALSE)
 
 ```
-
 
 ## Neural Network Model 3
 ```{r}
@@ -1063,8 +1044,199 @@ write.csv(NN6_export, file="./Submissions/NN_v6.csv", row.names=FALSE)
 
 ```
 
+## Neural Network Model 7 - Include Exogenous Variables
+```{r}
+# Fit Model on Training Data
+NN_fit7 <- nnetar(ts_demand_train,
+                 p=2,
+                 P=2,
+                 xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6)),
+                            humidity=ts_humid_train,
+                            temperature=ts_temp_train))
 
-## ARIMA with Fourier Terms Model 2
+# Forecast on Testing Data
+NN_for7 <- forecast(NN_fit7, 
+                   h=365,
+                   xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),h=365),
+                                humidity=ts_humid_test,
+                                temperature=ts_temp_test))
+
+#Plot foresting results
+autoplot(NN_for7) +
+  ylab("Electricity Demand") 
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_for7, series="Neural Network + Exog",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+# Plot model and observed data during 2010
+plot(NN_for7$mean,
+     xlab = "Date",
+     ylab = "Demand",
+     ylim = c(1000, 10000))
+lines(ts_demand_test,
+      type = "l",
+      col = 4,
+      lwd = 2)
+legend(2010, 10000, legend=c("Forecasting Results", "Last Year of Data (2010)"),
+       col=c("black",4), lwd=3, cex=0.8)
+
+accuracy(NN_for7$mean, ts_demand_test)
+NN7_scores <- accuracy(NN_for7$mean, ts_demand_test)
+```
+
+### NN7 Interpretation
+THE RMSE is 601.055 and the MAPE is 11.93.  
+
+### Full Data Modeling - Neural Network 7
+```{r}
+#Fit and forecast full neural network
+NN7_fit_full <-  nnetar(ts_daily_demand,
+                 p=2,
+                 P=2,
+                 xreg=cbind(fourier(ts_daily_demand, 
+                                          K=c(2,6)),
+                            temperature = ts_daily_temp,
+                            humidity = ts_daily_humidity))
+
+NN_full_for7 <- forecast(NN7_fit_full, 
+                   xreg=cbind(fourier(ts_demand_train, 
+                                          K=c(2,6),
+                                          h=n_forecast),
+                                temperature = ts_temp_for, 
+                                humidity = ts_humid_for),
+                   h=n_forecast)
+#Plot foresting 
+autoplot(ts_daily_demand) +
+  autolayer(NN_full_for7, series="Neural Network",PI=FALSE)+
+  ylab("Electricity Demand") 
+
+accuracy(NN_full_for7)
+
+```
+
+### Export Model Results - NN7
+```{r}
+NN7_export <- data.frame(date=forecast_dates, load=NN_full_for7$mean)
+write.csv(NN7_export, file="./Submissions/NN_v7.csv", row.names=FALSE)
+
+```
+
+
+## Compare All Models 
+```{r}
+scores <- as.data.frame(rbind(ARIMA_four_scores, ARIMA_reg_scores, TBATS_scores, ETS_scores, NN_scores))
+row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
+
+```
+
+
+
+
+## Saving Code (don't want to delete, but not sure we need it)
+### I started forecasting temperature then stopped: 
+```{r}
+
+# Decompose 
+ts_daily_temp %>% mstl() %>%
+  autoplot()
+
+temp_arima <- auto.arima(ts_daily_temp, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_daily_temp, 
+                                          K=c(2,2)) # 2 weekly cycles, 6 annual cycles
+                             )
+
+
+temp_forecast <- forecast(temp_arima,
+                           xreg=fourier(ts_daily_temp,
+                                        K=c(2,2),
+                                        h=n_forecast),
+                           h=n_forecast
+                           ) 
+
+autoplot(temp_forecast) + ylab("Demand")
+```
+
+
+Pasted Code from Original Neural Network export: 
+
+### Full Data Modeling - Neural Network
+```{r}
+#Fit and forecast STL + ETS model to data
+NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
+#This STLF code runs the STL+ETS model, so I don't know if we've yet exported the full model results from the first Neural Network! I just did so, below -- I could be wrong, so I didn't delete this! 
+
+#Plot foresting results
+autoplot(NN_fit_full) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_daily_demand) +
+  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+### Export Model Results - NN --> 
+```{r}
+NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
+write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
+
+```
+
+
+
+
+
+
+I saw this pasted from the in-class exercise -- I didn't want to delete it all together so I just put it down here to streamline
+
+
+```{r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
+#Fit arima model with fourier terms as exogenous regressors
+# seasonal = FALSE is the same as P=D=Q=0
+# play with K by changing it to K=c(2,2), K=c(2,4), K=c(2,6), etc. The higher teh K the longer it will take to converge, because R will try more models.
+
+
+ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_demand_train, 
+                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
+                             )
+
+ARIMA_Four_fit <- auto.arima(ts_act_power_daily_train, 
+                             seasonal=FALSE, 
+                             lambda=0,
+                             xreg=fourier(ts_act_power_daily_train, 
+                                          K=c(2,12))
+                             )
+
+#Forecast with ARIMA fit
+#also need to specify h for fourier terms
+ARIMA_Four_for <- forecast(ARIMA_Four_fit,
+                           xreg=fourier(ts_act_power_daily_train,
+                                        K=c(2,12),
+                                        h=365),
+                           h=365
+                           ) 
+
+#Plot foresting results
+autoplot(ARIMA_Four_for) + ylab("Active Power")
+
+#Plot model + observed data
+autoplot(ts_act_power_daily) +
+  autolayer(ARIMA_Four_for, series="ARIMA_FOURIER",PI=FALSE) +
+  ylab("Active Power")
+
+```
+
+
+### ARIMA with Fourier Terms Model 2
 ``` {r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
 # First Model: 
 ARIMA_Fourier_fit2 <- auto.arima(ts_demand_train, 
@@ -1139,113 +1311,7 @@ ARIMA_fourier_export2 <- data.frame(date=forecast_dates, load=ARIMA_Fourier_FULL
 write.csv(ARIMA_fourier_export2, "./Submissions/ARIMA_fourier_v3.csv", row.names = FALSE)
 ```
 
+### Update from Maggie (notes to self and to group!): 
+I made 3 new models with exogenous variables but for the future forecasting, I just used temperature and humidity values from the jan/feb of the year prior. A really complicated but maybe better model could forecast humidity and temperature using an ARIMA and then put those forecast values into the ARIMA for demand with exogenous variables. However, I think this could be a lot of work. Instead, we could do a few more exogenous variable ones but use different years for the forecast (instead of the temp/humidity for jan and feb 2010 we use 2009 for eaxample) *or* we could get the average temperature and humidity for each day and use that as the forecasted values. That may be the most fruitful but still less complicated than forecasting the values which is good! -- Not saying you have to do this, more making note for myself to remember my thought process! 
 
-## Compare All Models 
-```{r}
-scores <- as.data.frame(rbind(ARIMA_four_scores, ARIMA_reg_scores, TBATS_scores, ETS_scores, NN_scores))
-row.names(scores) <- c("ARIMA_for", "ARIMA_reg","TBATS", "ETS", "NN")
-
-```
-
-
-
-
-## Saving Code (don't want to delete, but not sure we need it)
-## I started forecasting temperature then stopped: 
-```{r}
-
-# Decompose 
-ts_daily_temp %>% mstl() %>%
-  autoplot()
-
-temp_arima <- auto.arima(ts_daily_temp, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=fourier(ts_daily_temp, 
-                                          K=c(2,2)) # 2 weekly cycles, 6 annual cycles
-                             )
-
-
-temp_forecast <- forecast(temp_arima,
-                           xreg=fourier(ts_daily_temp,
-                                        K=c(2,2),
-                                        h=n_forecast),
-                           h=n_forecast
-                           ) 
-
-autoplot(temp_forecast) + ylab("Demand")
-```
-
-
-Pasted Code from Original Neural Network export: 
-
-## Full Data Modeling - Neural Network
-```{r}
-#Fit and forecast STL + ETS model to data
-NN_fit_full <-  stlf(ts_daily_demand,h=n_forecast)
-#This STLF code runs the STL+ETS model, so I don't know if we've yet exported the full model results from the first Neural Network! I just did so, below -- I could be wrong, so I didn't delete this! 
-
-#Plot foresting results
-autoplot(NN_fit_full) + ylab("Active Power")
-
-#Plot model + observed data
-autoplot(ts_daily_demand) +
-  autolayer(NN_fit_full, series="STL + ETS",PI=FALSE) +
-  ylab("Active Power")
-
-```
-
-## Export Model Results - NN --> 
-```{r}
-NN_export <- data.frame(date=forecast_dates, load=NN_fit_full$mean)
-write.csv(NN_export, file="./Submissions/NN_v1.csv", row.names=FALSE)
-
-```
-
-
-
-
-
-
-I saw this pasted from the in-class exercise -- I didn't want to delete it all together so I just put it down here to streamline
-
-
-```{r ARIMA, echo=TRUE, message=FALSE, warning=FALSE}
-#Fit arima model with fourier terms as exogenous regressors
-# seasonal = FALSE is the same as P=D=Q=0
-# play with K by changing it to K=c(2,2), K=c(2,4), K=c(2,6), etc. The higher teh K the longer it will take to converge, because R will try more models.
-
-
-ARIMA_Fourier_fit <- auto.arima(ts_demand_train, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=fourier(ts_demand_train, 
-                                          K=c(2,2)) # 2 weekly cycles, 2 annual cycles
-                             )
-
-ARIMA_Four_fit <- auto.arima(ts_act_power_daily_train, 
-                             seasonal=FALSE, 
-                             lambda=0,
-                             xreg=fourier(ts_act_power_daily_train, 
-                                          K=c(2,12))
-                             )
-
-#Forecast with ARIMA fit
-#also need to specify h for fourier terms
-ARIMA_Four_for <- forecast(ARIMA_Four_fit,
-                           xreg=fourier(ts_act_power_daily_train,
-                                        K=c(2,12),
-                                        h=365),
-                           h=365
-                           ) 
-
-#Plot foresting results
-autoplot(ARIMA_Four_for) + ylab("Active Power")
-
-#Plot model + observed data
-autoplot(ts_act_power_daily) +
-  autolayer(ARIMA_Four_for, series="ARIMA_FOURIER",PI=FALSE) +
-  ylab("Active Power")
-
-```
-
+Next steps for either of us might include adding any other models that we want (right now we have 9 uploaded to the website), and then tidying up the code. Tidying the code I think will just involve making that table at the end with the final accuracy scores and ideally adding: message=FALSE, warning=FALSE to all code chunks (after r in {r}). Lastly, we can go through the notes in the code chunks that we left for each other and just keep those that make sense/explain our process. 
